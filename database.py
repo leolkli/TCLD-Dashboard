@@ -1,6 +1,6 @@
 """
 Database Connection Module for TCLD Dashboard
-Handles Azure Synapse database operations with Managed Identity authentication
+Handles Azure Synapse database operations with username/password authentication
 """
 
 import pyodbc
@@ -17,16 +17,16 @@ logger = logging.getLogger(__name__)
 # Database configuration
 DB_SERVER = os.getenv("DB_SERVER", "dev-saw-tcld-01.sql.azuresynapse.net")
 DB_NAME = os.getenv("DB_NAME", "tcld_syn_db_dev")
-# Use Managed Identity for Azure App Service, ActiveDirectory for local dev
-DB_AUTH_METHOD = os.getenv("DB_AUTH_METHOD", "Active Directory Managed Identity")
+DB_USER = os.getenv("DB_USER", "readonlyappuser")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "sqHbKRVQmk7TYDyEXtfWG6")
 
-# Connection string using Managed Identity (works on Azure App Service)
-# For local development with ActiveDirectoryInteractive, change DB_AUTH_METHOD in .env
+# Connection string using SQL Server authentication (username/password)
 CONNECTION_STRING = (
     f"Driver={{ODBC Driver 17 for SQL Server}};"
     f"Server={DB_SERVER};"
     f"Database={DB_NAME};"
-    f"Authentication={DB_AUTH_METHOD};"
+    f"UID={DB_USER};"
+    f"PWD={DB_PASSWORD};"
     f"Encrypt=yes;"
     f"TrustServerCertificate=no;"
     f"Connection Timeout=30;"
