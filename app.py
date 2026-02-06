@@ -146,7 +146,7 @@ def populate_buildings(n_clicks):
         buildings = get_buildings()
         if buildings is not None:
             return [
-                {"label": b["buildingName"], "value": b["buildingId"]}
+                {"label": b["BuildingName"], "value": b["BuildingID"]}
                 for b in buildings
             ]
         return []
@@ -167,7 +167,7 @@ def populate_areas(selected_building):
     try:
         areas = get_areas(selected_building)
         if areas is not None:
-            return [{"label": a["areaName"], "value": a["areaId"]} for a in areas]
+            return [{"label": a["areaName"], "value": a["areaCode"]} for a in areas]
         return []
     except Exception as e:
         logger.error(f"Error loading areas: {e}")
@@ -280,7 +280,7 @@ def update_consumption_chart(n_clicks, building_id, area_id, start_date, end_dat
             df,
             x="timestamp",
             y="value",
-            color="buildingName",
+            color="BuildingName",
             title="Energy Consumption Over Time",
             labels={"timestamp": "Date", "value": "Consumption (kWh)"},
         )
@@ -324,7 +324,7 @@ def update_distribution_chart(n_clicks, building_id, area_id, start_date, end_da
 
         fig = px.box(
             df,
-            x="buildingName",
+            x="BuildingName",
             y="value",
             title="Consumption Distribution by Building",
             labels={"value": "Consumption (kWh)"},
@@ -385,8 +385,8 @@ def update_data_table(n_clicks, building_id, area_id, start_date, end_date):
                     [
                         html.Tr(
                             [
-                                html.Td(row.get("buildingName", "")),
-                                html.Td(row.get("areaName", "")),
+                                html.Td(row.get("BuildingName", "")),
+                                html.Td(row.get("LocationName", "")),
                                 html.Td(row.get("ptagName", "")),
                                 html.Td(f"{row.get('value', 0):.2f}"),
                                 html.Td(row.get("unit", "")),

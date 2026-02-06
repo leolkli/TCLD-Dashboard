@@ -137,34 +137,46 @@ def get_areas(building_id):
 
 
 def get_eaptag_data(building_id=None, area_id=None, start_date=None, end_date=None, limit=100):
-    """Get EA Ptag (energy meter) data from available tables"""
+    """Get EA Ptag (energy meter) data from available tables with building and location info"""
     try:
         conn = get_connection()
         if not conn:
             return None
 
-        # Use the general EAPtag table if available, otherwise query from a known building table
+        # Query combines EA Ptag data with building and location information
         query = f"""
         SELECT TOP {limit}
-            metercode as ptagId,
-            timestamp,
-            MeterReadings as value,
-            UOM as unit
-        FROM dbo.DW_F_EAPtag_T
+            b.BuildingName,
+            iaq.LocationName,
+            e.metercode as ptagId,
+            e.timestamp,
+            e.MeterReadings as value,
+            e.UOM as unit
+        FROM dbo.DW_F_EAPtag_T e
+        LEFT JOIN dbo.DW_D_BUILDING_BK20260120 b ON e.metercode LIKE b.BuildingName + '%'
+        LEFT JOIN dbo.DM_F_IAQ_BuildingLayer_Hourly_Dashboard_AllDate_CN iaq ON iaq.Portfolio = b.BuildingID
         WHERE 1=1
         """
 
         params = []
 
+        if building_id:
+            query += " AND b.BuildingID = ?"
+            params.append(building_id)
+
+        if area_id:
+            query += " AND iaq.LocationName = ?"
+            params.append(area_id)
+
         if start_date:
-            query += " AND timestamp >= ?"
+            query += " AND e.timestamp >= ?"
             params.append(start_date)
 
         if end_date:
-            query += " AND timestamp <= ?"
+            query += " AND e.timestamp <= ?"
             params.append(end_date)
 
-        query += " ORDER BY timestamp DESC"
+        query += " ORDER BY e.timestamp DESC"
 
         logger.info(f"Executing EA Ptag query with {len(params)} parameters...")
         df = pd.read_sql(query, conn, params=params)
