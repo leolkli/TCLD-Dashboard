@@ -70,15 +70,16 @@ def get_buildings():
             logger.error("Failed to get database connection in get_buildings()")
             return None
 
+        # Query the most recent building dimension table
         query = """
         SELECT DISTINCT
-            buildingId,
-            buildingName,
-            region,
-            portfolio
-        FROM dbo.DW_D_Building
-        WHERE buildingId IS NOT NULL
-        ORDER BY buildingName
+            BuildingID,
+            BuildingName,
+            Region,
+            PortfolioType
+        FROM dbo.DW_D_BUILDING_BK20260120
+        WHERE BuildingID IS NOT NULL
+        ORDER BY BuildingName
         """
 
         logger.info("Executing query to get buildings...")
@@ -100,7 +101,7 @@ def get_buildings():
 
 
 def get_areas(building_id):
-    """Get areas for a specific building"""
+    """Get areas/locations for a specific building from IAQ dashboard data"""
     try:
         if not building_id:
             return None
@@ -109,81 +110,75 @@ def get_areas(building_id):
         if not conn:
             return None
 
+        # Query the IAQ dashboard to get unique locations/areas for a building
         query = """
         SELECT DISTINCT
-            areaId,
-            areaName,
-            buildingId
-        FROM dbo.DW_D_Area
-        WHERE buildingId = ?
-        ORDER BY areaName
+            LocationName as areaName,
+            Area as areaCode,
+            Portfolio as buildingCode
+        FROM dbo.DM_F_IAQ_BuildingLayer_Hourly_Dashboard_AllDate_CN
+        WHERE Portfolio = ?
+        ORDER BY LocationName
         """
 
         df = pd.read_sql(query, conn, params=[building_id])
         conn.close()
 
         if df.empty:
+            logger.warning(f"No areas found for building {building_id}")
             return None
 
         return df.to_dict("records")
     except Exception as e:
         logger.error(f"Error getting areas: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return None
 
 
 def get_eaptag_data(building_id=None, area_id=None, start_date=None, end_date=None, limit=100):
-    """Get EA Ptag data with optional filters"""
+    """Get EA Ptag (energy meter) data from available tables"""
     try:
         conn = get_connection()
         if not conn:
             return None
 
+        # Use the general EAPtag table if available, otherwise query from a known building table
         query = f"""
         SELECT TOP {limit}
-            ea.id,
-            ea.buildingId,
-            b.buildingName,
-            ea.areaId,
-            a.areaName,
-            ea.ptagId,
-            ea.value,
-            ea.unit,
-            ea.timestamp
-        FROM dbo.DW_F_EAPtag ea
-        LEFT JOIN dbo.DW_D_Building b ON ea.buildingId = b.buildingId
-        LEFT JOIN dbo.DW_D_Area a ON ea.areaId = a.areaId
+            metercode as ptagId,
+            timestamp,
+            MeterReadings as value,
+            UOM as unit
+        FROM dbo.DW_F_EAPtag_T
         WHERE 1=1
         """
 
         params = []
 
-        if building_id:
-            query += " AND ea.buildingId = ?"
-            params.append(building_id)
-
-        if area_id:
-            query += " AND ea.areaId = ?"
-            params.append(area_id)
-
         if start_date:
-            query += " AND ea.timestamp >= ?"
+            query += " AND timestamp >= ?"
             params.append(start_date)
 
         if end_date:
-            query += " AND ea.timestamp <= ?"
+            query += " AND timestamp <= ?"
             params.append(end_date)
 
-        query += " ORDER BY ea.timestamp DESC"
+        query += " ORDER BY timestamp DESC"
 
+        logger.info(f"Executing EA Ptag query with {len(params)} parameters...")
         df = pd.read_sql(query, conn, params=params)
         conn.close()
 
         if df.empty:
+            logger.warning("EA Ptag query returned no results")
             return None
 
         return df.to_dict("records")
     except Exception as e:
         logger.error(f"Error getting EA Ptag data: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return None
 
 
@@ -196,22 +191,18 @@ def get_dashboard_metrics(building_id=None, start_date=None, end_date=None):
 
         query = """
         SELECT
-            SUM(CAST(value AS FLOAT)) as totalEnergyConsumption,
-            AVG(CAST(value AS FLOAT)) as averageConsumption,
-            MAX(CAST(value AS FLOAT)) as peakConsumption,
-            MIN(CAST(value AS FLOAT)) as lowestConsumption,
+            SUM(CAST(MeterReadings AS FLOAT)) as totalEnergyConsumption,
+            AVG(CAST(MeterReadings AS FLOAT)) as averageConsumption,
+            MAX(CAST(MeterReadings AS FLOAT)) as peakConsumption,
+            MIN(CAST(MeterReadings AS FLOAT)) as lowestConsumption,
             COUNT(*) as recordCount,
             MIN(timestamp) as startDate,
             MAX(timestamp) as endDate
-        FROM dbo.DW_F_EAPtag
+        FROM dbo.DW_F_EAPtag_T
         WHERE 1=1
         """
 
         params = []
-
-        if building_id:
-            query += " AND buildingId = ?"
-            params.append(building_id)
 
         if start_date:
             query += " AND timestamp >= ?"
@@ -221,10 +212,12 @@ def get_dashboard_metrics(building_id=None, start_date=None, end_date=None):
             query += " AND timestamp <= ?"
             params.append(end_date)
 
+        logger.info("Executing metrics query...")
         df = pd.read_sql(query, conn, params=params)
         conn.close()
 
         if df.empty:
+            logger.warning("Metrics query returned no results")
             return None
 
         metrics = df.iloc[0].to_dict()
@@ -236,7 +229,10 @@ def get_dashboard_metrics(building_id=None, start_date=None, end_date=None):
         metrics["lowestConsumption"] = metrics.get("lowestConsumption") or 0
         metrics["recordCount"] = metrics.get("recordCount") or 0
 
+        logger.info(f"Retrieved metrics: Total={metrics['totalEnergyConsumption']}, Records={metrics['recordCount']}")
         return metrics
     except Exception as e:
         logger.error(f"Error getting metrics: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return None
