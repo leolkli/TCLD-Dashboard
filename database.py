@@ -36,10 +36,13 @@ CONNECTION_STRING = (
 def get_connection():
     """Get database connection"""
     try:
-        conn = pyodbc.connect(CONNECTION_STRING)
+        logger.info(f"Attempting to connect to {DB_SERVER}/{DB_NAME} as {DB_USER}")
+        conn = pyodbc.connect(CONNECTION_STRING, timeout=30)
+        logger.info("Database connection successful")
         return conn
     except Exception as e:
-        logger.error(f"Database connection error: {e}")
+        logger.error(f"Database connection error: {str(e)}")
+        logger.error(f"Connection string: Driver=ODBC Driver 17 for SQL Server;Server={DB_SERVER};Database={DB_NAME};UID={DB_USER};[PASSWORD_SET]")
         return None
 
 
@@ -64,6 +67,7 @@ def get_buildings():
     try:
         conn = get_connection()
         if not conn:
+            logger.error("Failed to get database connection in get_buildings()")
             return None
 
         query = """
@@ -77,15 +81,21 @@ def get_buildings():
         ORDER BY buildingName
         """
 
+        logger.info("Executing query to get buildings...")
         df = pd.read_sql(query, conn)
         conn.close()
+        
+        logger.info(f"Retrieved {len(df)} buildings from database")
 
         if df.empty:
+            logger.warning("Buildings query returned no results")
             return None
 
         return df.to_dict("records")
     except Exception as e:
-        logger.error(f"Error getting buildings: {e}")
+        logger.error(f"Error getting buildings: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return None
 
 
