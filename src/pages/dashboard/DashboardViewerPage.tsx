@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import { EChartsWidget } from '@/components/charts/EChartsWidget';
 import { useDashboardStore } from '@/store/dashboardStore';
+import { synapseService } from '@/services/synapseService';
 import type { Dashboard } from '@/types/dashboard';
 import type { WidgetConfiguration } from '@/types/widget';
 
@@ -64,15 +65,9 @@ export const DashboardViewerPage: React.FC = () => {
       try {
         let dashboards: Dashboard[] = [];
         if (portfolioName) {
-          const { getDashboards } = await import('@/services/synapseService').then(
-            (m) => m.synapseService,
-          );
-          dashboards = await getDashboards({ portfolio: decodeURIComponent(portfolioName), scope: 'portfolio-main' });
+          dashboards = await synapseService.getDashboards({ portfolio: decodeURIComponent(portfolioName), scope: 'portfolio-main' });
         } else if (buildingCode) {
-          const { getDashboards } = await import('@/services/synapseService').then(
-            (m) => m.synapseService,
-          );
-          dashboards = await getDashboards({ building: buildingCode, scope: 'building-main' });
+          dashboards = await synapseService.getDashboards({ building: buildingCode, scope: 'building-main' });
         }
         if (dashboards.length > 0) {
           setCurrentDashboard(dashboards[0]);
