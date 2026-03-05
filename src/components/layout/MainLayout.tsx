@@ -46,8 +46,8 @@ export const MainLayout: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100vh',
-          ml: isMobile ? 0 : `${sidebarWidth}px`,
-          transition: theme.transitions.create('margin', {
+          width: 0, // Let flexGrow handle the width
+          transition: theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
@@ -60,7 +60,6 @@ export const MainLayout: React.FC = () => {
         <Box
           sx={{
             flexGrow: 1,
-            p: 3,
             backgroundColor: 'background.default',
           }}
         >
