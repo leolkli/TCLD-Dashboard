@@ -404,17 +404,19 @@ router.get('/readings', async (req, res) => {
             });
         }
 
-        // Multi-code: return series array
+        // Multi-code: return series array wrapped in `data` to match ApiResponse<T>
         res.json({
             success: true,
-            series: series.map(s => ({
-                code: s.code,
-                uom: s.uom || '',
-                tableName: s.tableName || '',
-                count: s.data ? s.data.length : 0,
-                data: s.data || [],
-                error: s.error
-            }))
+            data: {
+                series: series.map(s => ({
+                    code: s.code,
+                    uom: s.uom || '',
+                    tableName: s.tableName || '',
+                    count: s.data ? s.data.length : 0,
+                    data: s.data || [],
+                    error: s.error
+                }))
+            }
         });
 
     } catch (err) {
