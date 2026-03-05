@@ -487,7 +487,7 @@ router.post('/widgets', express.json(), async (req, res) => {
         
         const query = `
             INSERT INTO App_Widgets (Name, WidgetScope, BuildingCode, BuildingName, PortfolioName, Config, CreatedBy, CreatedAt, UpdatedAt)
-            VALUES (@Name, @WidgetScope, @BuildingCode, @BuildingName, @PortfolioName, @Config, @CreatedBy, GETDATE(), GETDATE());
+            VALUES (@Name, @WidgetScope, @BuildingCode, @BuildingName, @PortfolioName, @Config, @CreatedBy, @Now, @Now);
             
             SELECT TOP 1 id FROM App_Widgets WHERE Name = @Name AND CreatedBy = @CreatedBy ORDER BY CreatedAt DESC;
         `;
@@ -500,6 +500,7 @@ router.post('/widgets', express.json(), async (req, res) => {
             .input('PortfolioName', sql.NVarChar, w.portfolioName || null)
             .input('Config', sql.NVarChar, JSON.stringify(w)) // Store full config object
             .input('CreatedBy', sql.NVarChar, 'system') // Replace with user if auth available
+            .input('Now', sql.DateTime, new Date())
             .query(query);
             
         const newId = result.recordset[0].id;
@@ -528,7 +529,7 @@ router.put('/widgets/:id', express.json(), async (req, res) => {
                 BuildingName = @BuildingName,
                 PortfolioName = @PortfolioName,
                 Config = @Config,
-                UpdatedAt = GETDATE()
+                UpdatedAt = @Now
             WHERE id = @id
         `;
         
@@ -540,6 +541,7 @@ router.put('/widgets/:id', express.json(), async (req, res) => {
             .input('BuildingName', sql.NVarChar, w.buildingName || null)
             .input('PortfolioName', sql.NVarChar, w.portfolioName || null)
             .input('Config', sql.NVarChar, JSON.stringify(w))
+            .input('Now', sql.DateTime, new Date())
             .query(query);
             
         res.json({ success: true, data: { ...w, id: req.params.id } });
@@ -649,7 +651,7 @@ router.post('/dashboards', express.json(), async (req, res) => {
 
         const query = `
             INSERT INTO App_Dashboards (Name, Scope, PortfolioName, BuildingCode, BuildingName, Layout, Widgets, SortOrder, CreatedBy, CreatedAt, UpdatedAt)
-            VALUES (@Name, @Scope, @PortfolioName, @BuildingCode, @BuildingName, @Layout, @Widgets, @SortOrder, @CreatedBy, GETDATE(), GETDATE());
+            VALUES (@Name, @Scope, @PortfolioName, @BuildingCode, @BuildingName, @Layout, @Widgets, @SortOrder, @CreatedBy, @Now, @Now);
             
             SELECT TOP 1 id FROM App_Dashboards WHERE Name = @Name AND CreatedBy = @CreatedBy ORDER BY CreatedAt DESC;
         `;
@@ -664,6 +666,7 @@ router.post('/dashboards', express.json(), async (req, res) => {
             .input('Widgets', sql.NVarChar, JSON.stringify(d.widgets || []))
             .input('SortOrder', sql.Int, d.sortOrder || 0)
             .input('CreatedBy', sql.NVarChar, 'system')
+            .input('Now', sql.DateTime, new Date())
             .query(query);
             
         const newId = result.recordset[0].id;
@@ -689,7 +692,7 @@ router.put('/dashboards/:id', express.json(), async (req, res) => {
                 Layout = @Layout,
                 Widgets = @Widgets,
                 SortOrder = @SortOrder,
-                UpdatedAt = GETDATE()
+                UpdatedAt = @Now
             WHERE id = @id
         `;
         
@@ -703,6 +706,7 @@ router.put('/dashboards/:id', express.json(), async (req, res) => {
             .input('Layout', sql.NVarChar, JSON.stringify(d.layout || []))
             .input('Widgets', sql.NVarChar, JSON.stringify(d.widgets || []))
             .input('SortOrder', sql.Int, d.sortOrder || 0)
+            .input('Now', sql.DateTime, new Date())
             .query(query);
             
         res.json({ success: true, data: { ...d, id: req.params.id } });
