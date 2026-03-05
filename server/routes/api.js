@@ -487,8 +487,9 @@ router.post('/widgets', express.json(), async (req, res) => {
         
         const query = `
             INSERT INTO App_Widgets (Name, WidgetScope, BuildingCode, BuildingName, PortfolioName, Config, CreatedBy, CreatedAt, UpdatedAt)
-            OUTPUT INSERTED.id
-            VALUES (@Name, @WidgetScope, @BuildingCode, @BuildingName, @PortfolioName, @Config, @CreatedBy, GETDATE(), GETDATE())
+            VALUES (@Name, @WidgetScope, @BuildingCode, @BuildingName, @PortfolioName, @Config, @CreatedBy, GETDATE(), GETDATE());
+            
+            SELECT TOP 1 id FROM App_Widgets WHERE Name = @Name AND CreatedBy = @CreatedBy ORDER BY CreatedAt DESC;
         `;
         
         const result = await pool.request()
@@ -648,8 +649,9 @@ router.post('/dashboards', express.json(), async (req, res) => {
 
         const query = `
             INSERT INTO App_Dashboards (Name, Scope, PortfolioName, BuildingCode, BuildingName, Layout, Widgets, SortOrder, CreatedBy, CreatedAt, UpdatedAt)
-            OUTPUT INSERTED.id
-            VALUES (@Name, @Scope, @PortfolioName, @BuildingCode, @BuildingName, @Layout, @Widgets, @SortOrder, @CreatedBy, GETDATE(), GETDATE())
+            VALUES (@Name, @Scope, @PortfolioName, @BuildingCode, @BuildingName, @Layout, @Widgets, @SortOrder, @CreatedBy, GETDATE(), GETDATE());
+            
+            SELECT TOP 1 id FROM App_Dashboards WHERE Name = @Name AND CreatedBy = @CreatedBy ORDER BY CreatedAt DESC;
         `;
         
         const result = await request
