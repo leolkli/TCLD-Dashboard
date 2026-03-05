@@ -446,11 +446,15 @@ router.get('/widgets', async (req, res) => {
         }
         
         const result = await request.query(query);
-        const widgets = result.recordset.map(row => ({
-            ...row,
-            id: row.id.toString(), // Ensure ID is string for frontend
-            config: JSON.parse(row.Config) // Parse stored JSON
-        }));
+        const widgets = result.recordset.map(row => {
+            let data = {};
+            try { data = JSON.parse(row.Config); } catch (e) { console.warn('JSON parse error on Widget Config'); }
+            return {
+                ...row, // include DB columns (optional)
+                ...data, // spread the actual widget config
+                id: row.id.toString(), // Ensure ID is string for frontend
+            };
+        });
         res.json({ success: true, data: widgets });
     } catch (err) {
         console.error('Error fetching widgets:', err);
@@ -469,9 +473,11 @@ router.get('/widgets/:id', async (req, res) => {
         if (result.recordset.length === 0) return res.status(404).json({ success: false, error: 'Widget not found' });
         
         const row = result.recordset[0];
+        let data = {};
+        try { data = JSON.parse(row.Config); } catch (e) { console.warn('JSON parse error on Widget Config'); }
         res.json({
             success: true,
-            data: { ...row, id: row.id.toString(), config: JSON.parse(row.Config) }
+            data: { ...row, ...data, id: row.id.toString() }
         });
     } catch (err) {
         console.error('Error fetching widget:', err);
@@ -590,8 +596,15 @@ router.get('/dashboards', async (req, res) => {
         
         const result = await request.query(query);
         const dashboards = result.recordset.map(row => ({
-            ...row,
             id: row.id.toString(),
+            name: row.Name,
+            scope: row.Scope,
+            portfolioName: row.PortfolioName,
+            buildingCode: row.BuildingCode,
+            buildingName: row.BuildingName,
+            sortOrder: row.SortOrder,
+            createdBy: row.CreatedBy,
+            createdAt: row.CreatedAt,
             layout: JSON.parse(row.Layout),
             widgets: JSON.parse(row.Widgets)
         }));
@@ -616,8 +629,15 @@ router.get('/dashboards/:id', async (req, res) => {
         res.json({
             success: true,
             data: {
-                ...row,
                 id: row.id.toString(),
+                name: row.Name,
+                scope: row.Scope,
+                portfolioName: row.PortfolioName,
+                buildingCode: row.BuildingCode,
+                buildingName: row.BuildingName,
+                sortOrder: row.SortOrder,
+                createdBy: row.CreatedBy,
+                createdAt: row.CreatedAt,
                 layout: JSON.parse(row.Layout),
                 widgets: JSON.parse(row.Widgets)
             }

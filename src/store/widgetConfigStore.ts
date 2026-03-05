@@ -160,7 +160,16 @@ export const useWidgetConfigStore = create<WidgetConfigState>((set, get) => ({
     })),
 
   updateGeneral: (general) =>
-    set((state) => ({ config: { ...state.config, general: { ...state.config.general, ...general } } })),
+    set((state) => {
+      const nextGeneral = { ...state.config.general, ...general };
+      return { 
+        config: { 
+          ...state.config, 
+          general: nextGeneral,
+          name: general.title !== undefined ? general.title : state.config.name
+        } 
+      };
+    }),
 
   updateHeader: (header) =>
     set((state) => ({ config: { ...state.config, header: { ...state.config.header, ...header } } })),
