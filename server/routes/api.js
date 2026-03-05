@@ -595,19 +595,25 @@ router.get('/dashboards', async (req, res) => {
         }
         
         const result = await request.query(query);
-        const dashboards = result.recordset.map(row => ({
-            id: row.id.toString(),
-            name: row.Name,
-            scope: row.Scope,
-            portfolioName: row.PortfolioName,
-            buildingCode: row.BuildingCode,
-            buildingName: row.BuildingName,
-            sortOrder: row.SortOrder,
-            createdBy: row.CreatedBy,
-            createdAt: row.CreatedAt,
-            layout: JSON.parse(row.Layout),
-            widgets: JSON.parse(row.Widgets)
-        }));
+        const dashboards = result.recordset.map(row => {
+            let layout = [];
+            let widgets = [];
+            try { layout = JSON.parse(row.Layout || '[]'); } catch(e) { console.warn('JSON parse error on Display Layout', e); }
+            try { widgets = JSON.parse(row.Widgets || '[]'); } catch(e) { console.warn('JSON parse error on Dashboard Widgets', e); }
+            return {
+                id: row.id.toString(),
+                name: row.Name,
+                scope: row.Scope,
+                portfolioName: row.PortfolioName,
+                buildingCode: row.BuildingCode,
+                buildingName: row.BuildingName,
+                sortOrder: row.SortOrder,
+                createdBy: row.CreatedBy,
+                createdAt: row.CreatedAt,
+                layout,
+                widgets
+            };
+        });
         res.json({ success: true, data: dashboards });
     } catch (err) {
         console.error('Error fetching dashboards:', err);
@@ -626,6 +632,10 @@ router.get('/dashboards/:id', async (req, res) => {
         if (result.recordset.length === 0) return res.status(404).json({ success: false, error: 'Dashboard not found' });
         
         const row = result.recordset[0];
+        let layout = [];
+        let widgets = [];
+        try { layout = JSON.parse(row.Layout || '[]'); } catch(e) {}
+        try { widgets = JSON.parse(row.Widgets || '[]'); } catch(e) {}
         res.json({
             success: true,
             data: {
@@ -638,8 +648,8 @@ router.get('/dashboards/:id', async (req, res) => {
                 sortOrder: row.SortOrder,
                 createdBy: row.CreatedBy,
                 createdAt: row.CreatedAt,
-                layout: JSON.parse(row.Layout),
-                widgets: JSON.parse(row.Widgets)
+                layout,
+                widgets
             }
         });
     } catch (err) {
