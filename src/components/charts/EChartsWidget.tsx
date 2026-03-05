@@ -235,7 +235,7 @@ export const EChartsWidget: React.FC<EChartsWidgetProps> = ({
     <ReactEChartsCore
       echarts={echarts}
       option={option}
-      style={{ height, width: '100%' }}
+      style={{ height: height || '100%', width: '100%' }}
       notMerge
       lazyUpdate
       opts={{ renderer: 'canvas' }}

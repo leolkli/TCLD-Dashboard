@@ -26,6 +26,7 @@ import {
   ContentCopy as CopyIcon,
   Business as BuildingIcon,
   Save as SaveIcon,
+  LibraryBooks as LibraryIcon,
 } from '@mui/icons-material';
 import { ChartPreview } from '@/components/charts/ChartPreview';
 import {
@@ -39,6 +40,7 @@ import {
   ComparisonSettings,
   ScaleSettings,
 } from '@/components/widget-configurator';
+import { WidgetLibraryModal } from '@/components/widget-configurator/WidgetLibraryModal';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 
 // Settings panel definition
@@ -64,6 +66,7 @@ export const WidgetConfiguratorPage: React.FC = () => {
   } = useWidgetConfigStore();
 
   const [expanded, setExpanded] = React.useState<string | false>('building');
+  const [libraryModalOpen, setLibraryModalOpen] = React.useState<boolean>(false);
   const fetchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Debounced fetch when config changes
@@ -120,6 +123,14 @@ export const WidgetConfiguratorPage: React.FC = () => {
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<LibraryIcon />}
+            onClick={() => setLibraryModalOpen(true)}
+          >
+            Library
+          </Button>
           <Tooltip title="Copy config as JSON">
             <IconButton onClick={handleCopyJSON} size="small" color="primary">
               <CopyIcon fontSize="small" />
@@ -176,10 +187,11 @@ export const WidgetConfiguratorPage: React.FC = () => {
               flex: 1,
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 3,
+              borderRadius: 2,
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
+              minHeight: 0,
             }}
           >
             <ChartPreview />
@@ -243,6 +255,12 @@ export const WidgetConfiguratorPage: React.FC = () => {
           ))}
         </Box>
       </Box>
+
+      {/* Widget Library Modal */}
+      <WidgetLibraryModal 
+        open={libraryModalOpen} 
+        onClose={() => setLibraryModalOpen(false)} 
+      />
     </Box>
   );
 };
