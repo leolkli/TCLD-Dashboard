@@ -369,11 +369,13 @@ router.get('/readings', async (req, res) => {
                 query += ` AND DateKey >= ${toDateKey(threeMonthsAgo.toISOString())}`;
             }
 
-            query += ` ${groupClause} ORDER BY timestamp ASC`;
+            query += ` ${groupClause}`;
 
             // Apply limit for aggregated queries
             if (aggMode !== 'raw') {
-                query = `SELECT TOP ${maxRows} * FROM (${query}) sub`;
+                query = `SELECT TOP ${maxRows} * FROM (${query}) sub ORDER BY timestamp ASC`;
+            } else {
+                query += ` ORDER BY timestamp ASC`;
             }
 
             const factResult = await pool.request()
