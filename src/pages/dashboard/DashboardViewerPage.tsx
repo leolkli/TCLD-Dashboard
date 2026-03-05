@@ -22,7 +22,6 @@ import {
 } from '@mui/material';
 import { EChartsWidget } from '@/components/charts/EChartsWidget';
 import { useDashboardStore } from '@/store/dashboardStore';
-import { synapseService } from '@/services/synapseService';
 import type { Dashboard } from '@/types/dashboard';
 import type { WidgetConfiguration } from '@/types/widget';
 
