@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import { EChartsWidget } from '@/components/charts/EChartsWidget';
 import { useDashboardStore } from '@/store/dashboardStore';
+import { synapseService } from '@/services/synapseService';
 import type { Dashboard } from '@/types/dashboard';
 import type { WidgetConfiguration } from '@/types/widget';
 
@@ -79,7 +80,8 @@ export const DashboardViewerPage: React.FC = () => {
         } else {
           setCurrentDashboard(null);
         }
-      } catch {
+      } catch (err) {
+        console.error("Failed to load dashboard in DashboardViewerPage:", err);
         setCurrentDashboard(null);
       }
     };
