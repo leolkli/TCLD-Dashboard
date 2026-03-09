@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, createRoutesFromElements, Route } from 'react-router-dom';
 import { ProtectedRoute } from '@components/auth/ProtectedRoute';
 import { MainLayout } from '@components/layout/MainLayout';
 import { LoginPage } from '@pages/auth/LoginPage';
@@ -13,9 +13,9 @@ import { VtagManagementPage } from '@pages/admin/VtagManagementPage';
 import { WidgetConfiguratorPage } from '@pages/admin/WidgetConfiguratorPage';
 import { NotFoundPage } from '@pages/NotFoundPage';
 
-function App() {
-  return (
-    <Routes>
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <>
       {/* Public Routes */}
       <Route path="/login" element={<LoginPage />} />
 
@@ -49,8 +49,8 @@ function App() {
 
       {/* 404 */}
       <Route path="*" element={<NotFoundPage />} />
-    </Routes>
-  );
-}
+    </>
+  )
+);
 
-export default App;
+export default router;

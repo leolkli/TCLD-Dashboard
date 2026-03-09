@@ -1,38 +1,119 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Box,
   ToggleButtonGroup,
   ToggleButton,
   Typography,
-  Slider,
-  FormControlLabel,
-  Switch,
   Stack,
+  Select,
+  MenuItem,
+  FormControl,
 } from '@mui/material';
 import {
   ShowChart as LineIcon,
   BarChart as BarIcon,
   BubbleChart as ScatterIcon,
-  CandlestickChart as CandleIcon,
   StackedLineChart as AreaIcon,
+  PieChart as PieIcon,
+  GridOn as HeatmapIcon,
+  Numbers as NumbersIcon,
 } from '@mui/icons-material';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
-import type { WidgetChartType } from '@/types/widget';
+import type { WidgetChartType, DataRelationship } from '@/types/widget';
 
-const chartTypes: { label: string; value: WidgetChartType; icon: React.ReactNode }[] = [
-  { label: 'Line', value: 'line', icon: <LineIcon fontSize="small" /> },
-  { label: 'Area', value: 'area', icon: <AreaIcon fontSize="small" /> },
-  { label: 'Bar', value: 'bar', icon: <BarIcon fontSize="small" /> },
-  { label: 'Candle', value: 'candlestick', icon: <CandleIcon fontSize="small" /> },
-  { label: 'Scatter', value: 'scatter', icon: <ScatterIcon fontSize="small" /> },
+const relationships: { label: string; value: DataRelationship }[] = [
+  { label: 'Single Metric / KPI', value: 'single-metric' },
+  { label: 'Change over time', value: 'change-over-time' },
+  { label: 'Comparing categories', value: 'comparing-categories' },
+  { label: 'Part of a whole', value: 'part-of-whole' },
+  // { label: 'Correlation', value: 'correlation' }, // Hidden for now
+];
+
+const allChartTypes: {
+  label: string;
+  value: WidgetChartType;
+  icon: React.ReactNode;
+  validFor: DataRelationship[];
+}[] = [
+  {
+    label: 'KPI',
+    value: 'kpi',
+    icon: <NumbersIcon fontSize="small" />,
+    validFor: ['single-metric'],
+  },
+  {
+    label: 'Line',
+    value: 'line',
+    icon: <LineIcon fontSize="small" />,
+    validFor: ['change-over-time'],
+  },
+  {
+    label: 'Area',
+    value: 'area',
+    icon: <AreaIcon fontSize="small" />,
+    validFor: ['change-over-time'],
+  },
+  {
+    label: 'Bar',
+    value: 'bar',
+    icon: <BarIcon fontSize="small" />,
+    validFor: ['change-over-time', 'comparing-categories', 'part-of-whole'],
+  },
+  {
+    label: 'Scatter',
+    value: 'scatter',
+    icon: <ScatterIcon fontSize="small" />,
+    validFor: ['comparing-categories', 'correlation'],
+  },
+  { label: 'Pie', value: 'pie', icon: <PieIcon fontSize="small" />, validFor: ['part-of-whole'] },
+  {
+    label: 'Heatmap',
+    value: 'heatmap',
+    icon: <HeatmapIcon fontSize="small" />,
+    validFor: ['change-over-time', 'correlation'],
+  },
 ];
 
 export const ChartSettings: React.FC = () => {
   const { config, updateChart } = useWidgetConfigStore();
   const { chart } = config;
 
+  const handleRelationshipChange = (newRel: DataRelationship) => {
+    // Find first valid chart for this relationship
+    const firstValid = allChartTypes.find((ct) => ct.validFor.includes(newRel));
+    updateChart({
+      relationship: newRel,
+      type: firstValid ? firstValid.value : 'bar',
+    });
+  };
+
+  const validCharts = useMemo(
+    () =>
+      allChartTypes.filter((ct) => ct.validFor.includes(chart.relationship || 'change-over-time')),
+    [chart.relationship]
+  );
+
   return (
     <Stack spacing={2}>
+      {/* Data Relationship */}
+      <FormControl size="small" fullWidth>
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+          What is the data relationship?
+        </Typography>
+        <Select
+          value={chart.relationship || 'change-over-time'}
+          onChange={(e) => handleRelationshipChange(e.target.value as DataRelationship)}
+          displayEmpty
+          sx={{ borderRadius: 2 }}
+        >
+          {relationships.map((rel) => (
+            <MenuItem key={rel.value} value={rel.value}>
+              {rel.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
       {/* Chart Type */}
       <Box>
         <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
@@ -45,7 +126,7 @@ export const ChartSettings: React.FC = () => {
           size="small"
           sx={{ flexWrap: 'wrap', gap: 0.5 }}
         >
-          {chartTypes.map((ct) => (
+          {validCharts.map((ct) => (
             <ToggleButton
               key={ct.value}
               value={ct.value}
@@ -70,91 +151,6 @@ export const ChartSettings: React.FC = () => {
         </ToggleButtonGroup>
       </Box>
 
-      {/* Line Width (for line/area) */}
-      {(chart.type === 'line' || chart.type === 'area') && (
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Line Width: {chart.lineWidth}px
-          </Typography>
-          <Slider
-            value={chart.lineWidth}
-            onChange={(_, val) => updateChart({ lineWidth: val as number })}
-            min={1}
-            max={5}
-            step={0.5}
-            valueLabelDisplay="auto"
-          />
-        </Box>
-      )}
-
-      {/* Fill Opacity (for area) */}
-      {chart.type === 'area' && (
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Fill Opacity: {chart.fillOpacity}%
-          </Typography>
-          <Slider
-            value={chart.fillOpacity}
-            onChange={(_, val) => updateChart({ fillOpacity: val as number })}
-            min={0}
-            max={100}
-            valueLabelDisplay="auto"
-          />
-        </Box>
-      )}
-
-      {/* Candlestick colors */}
-      {chart.type === 'candlestick' && (
-        <Stack direction="row" spacing={2}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" color="text.secondary">Up</Typography>
-            <Box
-              component="input"
-              type="color"
-              value={chart.upColor}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateChart({ upColor: e.target.value })}
-              sx={{ width: 28, height: 28, border: 'none', cursor: 'pointer', borderRadius: 1, p: 0 }}
-            />
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" color="text.secondary">Down</Typography>
-            <Box
-              component="input"
-              type="color"
-              value={chart.downColor}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateChart({ downColor: e.target.value })}
-              sx={{ width: 28, height: 28, border: 'none', cursor: 'pointer', borderRadius: 1, p: 0 }}
-            />
-          </Box>
-        </Stack>
-      )}
-
-      {/* Grid Lines */}
-      <FormControlLabel
-        control={
-          <Switch
-            checked={chart.showGridLines}
-            onChange={(_, v) => updateChart({ showGridLines: v })}
-            color="primary"
-            size="small"
-          />
-        }
-        label="Show Grid Lines"
-      />
-
-      {/* Background Color */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography variant="caption" color="text.secondary">
-          Background
-        </Typography>
-        <Box
-          component="input"
-          type="color"
-          value={chart.backgroundColor}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateChart({ backgroundColor: e.target.value })}
-          sx={{ width: 28, height: 28, border: 'none', cursor: 'pointer', borderRadius: 1, p: 0 }}
-        />
-      </Box>
-    </Stack>
+      </Stack>
   );
 };

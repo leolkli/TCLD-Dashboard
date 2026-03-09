@@ -13,14 +13,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Responsive, WidthProvider } from 'react-grid-layout';
-import {
-  Box,
-  Typography,
-  Paper,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
-import { EChartsWidget } from '@/components/charts/EChartsWidget';
+import { Box, Typography, Alert, CircularProgress } from '@mui/material';
+import { DashboardWidgetLoader } from '@/components/dashboard/DashboardWidgetLoader';
+import { DashboardToolbar } from '@/components/dashboard/DashboardToolbar';
+import { WidgetLibraryModal } from '@/components/dashboard/WidgetLibraryModal';
+import { WidgetEditModal } from '@/components/dashboard/WidgetEditModal';
+import { useDashboardGlobalStore } from '@/store/dashboardGlobalStore';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { synapseService } from '@/services/synapseService';
 import type { Dashboard } from '@/types/dashboard';
@@ -46,7 +44,11 @@ export const DashboardViewerPage: React.FC = () => {
     fetchDashboard,
     fetchSavedWidgets,
     setCurrentDashboard,
+    updateLayout,
+    removeWidgetFromDashboard
   } = useDashboardStore();
+
+  const { isEditMode } = useDashboardGlobalStore();
 
   const [resolvedWidgets, setResolvedWidgets] = useState<
     Map<string, WidgetConfiguration>
@@ -145,9 +147,7 @@ export const DashboardViewerPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>
-        {currentDashboard.name}
-      </Typography>
+      <DashboardToolbar />
 
       {currentDashboard.widgets.length === 0 ? (
         <Alert severity="info" sx={{ maxWidth: 600 }}>
@@ -161,63 +161,51 @@ export const DashboardViewerPage: React.FC = () => {
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
           cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
           rowHeight={80}
-          isDraggable={false}
-          isResizable={false}
+          isDraggable={isEditMode}
+          isResizable={isEditMode}
+          onLayoutChange={(currentLayout) => {
+            if (isEditMode) {
+              updateLayout(currentLayout);
+            }
+          }}
           compactType="vertical"
         >
           {currentDashboard.widgets.map((wi) => {
             const widgetConfig = resolvedWidgets.get(wi.layoutId);
             return (
-              <Paper
-                key={wi.layoutId}
-                elevation={0}
-                sx={{
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  height: '100%',
-                }}
-              >
-                {/* Widget header */}
-                <Box
-                  sx={{
-                    px: 1.5,
-                    py: 0.75,
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    bgcolor: 'grey.50',
-                  }}
-                >
-                  <Typography variant="caption" fontWeight={600}>
-                    {widgetConfig?.general.title || wi.widgetName}
-                  </Typography>
-                </Box>
-                {/* Widget chart */}
-                <Box sx={{ flex: 1, minHeight: 0 }}>
-                  {widgetConfig ? (
-                    <EChartsWidget config={widgetConfig} data={{}} />
-                  ) : (
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        color: 'text.disabled',
-                      }}
-                    >
-                      <Typography variant="caption">Widget not found</Typography>
-                    </Box>
-                  )}
-                </Box>
-              </Paper>
+              <div key={wi.layoutId}>
+                {widgetConfig ? (
+                  <DashboardWidgetLoader
+                    layoutId={wi.layoutId}
+                    config={widgetConfig}
+                    isEditMode={isEditMode}
+                    onRemove={removeWidgetFromDashboard}
+                  />
+                ) : (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%',
+                      border: '1px dashed',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      color: 'text.disabled',
+                    }}
+                  >
+                    <Typography variant="caption">Widget {wi.widgetName} not found</Typography>
+                  </Box>
+                )}
+              </div>
             );
           })}
         </ResponsiveGridLayout>
       )}
+
+      {/* Modals */}
+      <WidgetLibraryModal />
+      <WidgetEditModal />
     </Box>
   );
 };

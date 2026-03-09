@@ -7,7 +7,7 @@
 import type { SynapsePTag } from './synapse';
 
 // ─── Chart Types ───────────────────────────────────────────────
-export type WidgetChartType = 'line' | 'area' | 'bar' | 'candlestick' | 'scatter';
+export type WidgetChartType = 'line' | 'area' | 'bar' | 'candlestick' | 'scatter' | 'pie' | 'heatmap' | 'kpi' | 'table';
 export type AggregationInterval = 'raw' | 'hourly' | 'daily' | 'weekly' | 'monthly';
 export type DateRangePreset = '1D' | '1W' | '1M' | '3M' | '6M' | '1Y' | 'ALL' | 'custom';
 export type HeaderFontSize = 'small' | 'medium' | 'large';
@@ -24,6 +24,7 @@ export interface SelectedDataPoint {
   commodity: string;     // Commodity type
   color: string;         // Auto-assigned from chartColors
   axisIndex: number;     // 0 = left, 1 = right (for dual-axis comparison)
+  axis?: 'x' | 'y';
 }
 
 // ─── Size Settings ─────────────────────────────────────────────
@@ -58,18 +59,31 @@ export interface HeaderConfig {
 }
 
 // ─── Chart Settings ────────────────────────────────────────────
+export type DataRelationship = 'none' | 'single-metric' | 'change-over-time' | 'comparing-categories' | 'part-of-whole' | 'correlation';
+export type PieLayout = 'pie' | 'donut';
+export type BarLayout = 'horizontal' | 'grouped' | 'stacked';
+
 export interface ChartConfig {
   type: WidgetChartType;
-  lineWidth: number;       // 1-5
-  fillOpacity: number;     // 0-100
+  lineWidth: number;
+  fillOpacity: number;
   showGridLines: boolean;
   backgroundColor: string;
-  upColor: string;         // Candlestick up
-  downColor: string;       // Candlestick down
+  upColor: string;
+  downColor: string;
+  showDataLabels?: boolean;
+  showTrendline?: boolean;
+  pieLayout?: PieLayout;
+  barLayout?: BarLayout;
+  scatterPointMinSize?: number;
+  scatterPointMaxSize?: number;
+  relationship?: DataRelationship;
 }
 
 // ─── Comparison / Indicators Settings ──────────────────────────
 export interface ComparisonConfig {
+  baseline?: any;
+  target?: any;
   enabled: boolean;
   mode: ComparisonMode;
   showVolume: boolean;
@@ -80,9 +94,12 @@ export interface ScalesConfig {
   yAxisMode: 'auto' | 'manual';
   yMin?: number;
   yMax?: number;
+  xAxisMode?: 'auto' | 'manual';
+  xMin?: number;
+  xMax?: number;
   scaleType: ScaleType;
   showPriceScale: boolean;
-  precision: number;       // decimal places
+  precision: number;
 }
 
 // ─── Widget Scope ──────────────────────────────────────────────

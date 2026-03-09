@@ -30,11 +30,12 @@ import type { SynapsePTag } from '@/types/synapse';
 import type { SelectedDataPoint } from '@/types/widget';
 
 interface TagSearchDialogProps {
+  targetAxis?: 'x' | 'y';
   open: boolean;
   onClose: () => void;
 }
 
-export const TagSearchDialog: React.FC<TagSearchDialogProps> = ({ open, onClose }) => {
+export const TagSearchDialog: React.FC<TagSearchDialogProps> = ({ open, onClose, targetAxis }) => {
   const { config, addDataPoint, filterOptions, fetchFilterOptions } = useWidgetConfigStore();
 
   const [query, setQuery] = useState('');
@@ -114,6 +115,7 @@ export const TagSearchDialog: React.FC<TagSearchDialogProps> = ({ open, onClose 
           commodity: tag.Commodity || '',
           color: '', // auto-assigned by store
           axisIndex: 0,
+          axis: targetAxis || 'y',
         };
         addDataPoint(dp);
       });

@@ -32,6 +32,7 @@ interface DashboardState {
 
   /** Widget library */
   fetchSavedWidgets: (buildingCode?: string) => Promise<void>;
+  saveWidget: (widget: WidgetConfiguration) => Promise<WidgetConfiguration>;
   deleteWidget: (id: string) => Promise<void>;
 
   setLoading: (loading: boolean) => void;
@@ -168,6 +169,27 @@ export const useDashboardStore = create<DashboardState>((set, _get) => ({
     } catch (err) {
       console.warn('Failed to fetch saved widgets:', err);
       set({ savedWidgets: [] });
+    }
+  },
+
+  saveWidget: async (widget) => {
+    set({ isLoading: true, error: null });
+    try {
+      const saved = await synapseService.saveWidget(widget);
+      set((state) => {
+        const idx = state.savedWidgets.findIndex((w) => w.id === saved.id);
+        const list = [...state.savedWidgets];
+        if (idx >= 0) {
+          list[idx] = saved;
+        } else {
+          list.push(saved);
+        }
+        return { savedWidgets: list, isLoading: false };
+      });
+      return saved;
+    } catch (err: any) {
+      set({ isLoading: false, error: err?.message });
+      throw err;
     }
   },
 

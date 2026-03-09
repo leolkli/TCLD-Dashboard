@@ -61,6 +61,8 @@ interface WidgetConfigState {
   updateHeader: (header: Partial<HeaderConfig>) => void;
   updateChart: (chart: Partial<ChartConfig>) => void;
   updateComparison: (comparison: Partial<ComparisonConfig>) => void;
+  updateComparisonBaseline: (baseline: Partial<ComparisonConfig['baseline']>) => void;
+  updateComparisonTarget: (target: Partial<ComparisonConfig['target']>) => void;
   updateScales: (scales: Partial<ScalesConfig>) => void;
 
   // Data fetching
@@ -180,6 +182,28 @@ export const useWidgetConfigStore = create<WidgetConfigState>((set, get) => ({
   updateComparison: (comparison) =>
     set((state) => ({
       config: { ...state.config, comparison: { ...state.config.comparison, ...comparison } },
+    })),
+
+  updateComparisonBaseline: (baseline) =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        comparison: {
+          ...state.config.comparison,
+          baseline: { ...state.config.comparison.baseline, ...baseline },
+        },
+      },
+    })),
+
+  updateComparisonTarget: (target) =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        comparison: {
+          ...state.config.comparison,
+          target: { ...state.config.comparison.target, ...target },
+        },
+      },
     })),
 
   updateScales: (scales) =>

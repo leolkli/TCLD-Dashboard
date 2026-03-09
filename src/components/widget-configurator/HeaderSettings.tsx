@@ -7,6 +7,7 @@ import {
   ToggleButton,
   Typography,
   Stack,
+  TextField
 } from '@mui/material';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 import type { HeaderFontSize } from '@/types/widget';
@@ -18,27 +19,39 @@ const fontSizes: { label: string; value: HeaderFontSize }[] = [
 ];
 
 export const HeaderSettings: React.FC = () => {
-  const { config, updateHeader } = useWidgetConfigStore();
-  const { header } = config;
+  const { config, updateHeader, updateGeneral } = useWidgetConfigStore();
+  const { header, general } = config;
 
   return (
-    <Stack spacing={1.5}>
-      <FormControlLabel
-        control={
-          <Switch
-            checked={header.visible}
-            onChange={(_, v) => updateHeader({ visible: v })}
-            color="primary"
-          />
-        }
-        label="Show Header"
+    <Stack spacing={2}>
+      <TextField
+        label="Description / Subtitle"
+        value={general.description || ''}
+        onChange={(e) => updateGeneral({ description: e.target.value })}
+        fullWidth
+        size="small"
+        multiline
+        rows={2}
       />
 
+      <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={header.visible}
+              onChange={(_, v) => updateHeader({ visible: v })}
+              color="primary"
+            />
+          }
+          label={<strong>Show Header Area</strong>}
+        />
+      </Box>
+
       {header.visible && (
-        <>
+        <Stack spacing={1.5} pl={1} borderLeft="2px solid" borderColor="primary.light">
           <Box>
             <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-              Title Size
+              Title Typography Size
             </Typography>
             <ToggleButtonGroup
               value={header.fontSize}
@@ -63,7 +76,7 @@ export const HeaderSettings: React.FC = () => {
                 size="small"
               />
             }
-            label="Show Last Value"
+            label="Display 'Last Value' Metric"
           />
 
           <FormControlLabel
@@ -75,9 +88,9 @@ export const HeaderSettings: React.FC = () => {
                 size="small"
               />
             }
-            label="Show Change %"
+            label="Display 'Period Change %'"
           />
-        </>
+        </Stack>
       )}
     </Stack>
   );

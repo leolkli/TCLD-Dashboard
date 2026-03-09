@@ -1,6 +1,37 @@
 const express = require('express');
 const router = express.Router();
 const { sql, poolPromise } = require('../db');
+const NodeCache = require('node-cache');
+
+// Initialize cache with 5-minute standard TTL
+const apiCache = new NodeCache({ stdTTL: 300 });
+
+// Cache middleware
+const cacheMiddleware = (req, res, next) => {
+    // Only cache GET requests
+    if (req.method !== 'GET') {
+        return next();
+    }
+    const key = req.originalUrl;
+    const cachedResponse = apiCache.get(key);
+
+    if (cachedResponse) {
+        console.log(`[Cache HIT] ${key}`);
+        return res.json(cachedResponse);
+    } else {
+        console.log(`[Cache MISS] ${key}`);
+        // Intercept res.json to store the response in cache before sending
+        const originalJson = res.json;
+        res.json = (body) => {
+            // Only cache successful responses
+            if (res.statusCode === 200) {
+                apiCache.set(key, body);
+            }
+            originalJson.call(res, body);
+        };
+        next();
+    }
+};
 
 // Health Check
 router.get('/health', async (req, res) => {
@@ -27,7 +58,7 @@ router.get('/test-db', async (req, res) => {
  * Returns the portfolio and building hierarchy.
  * Structure: [{ name: "PortfolioA", buildings: [{ code: "B1", name: "Building 1" }, ...] }, ...]
  */
-router.get('/hierarchy', async (req, res) => {
+router.get('/hierarchy', cacheMiddleware, async (req, res) => {
     try {
         const pool = await poolPromise;
         const query = `
@@ -74,7 +105,7 @@ router.get('/hierarchy', async (req, res) => {
  * Returns all buildings from DW_D_BuildingName.
  * Response: { success: true, data: [{ code, name }, ...] }
  */
-router.get('/buildings/list', async (req, res) => {
+router.get('/buildings/list', cacheMiddleware, async (req, res) => {
     try {
         const pool = await poolPromise;
         const result = await pool.request().query(`
@@ -98,7 +129,7 @@ router.get('/buildings/list', async (req, res) => {
  * GET /buildings/:code/tags
  * Returns physical (PTag) and virtual (VTag) tags for a specific building.
  */
-router.get('/buildings/:code/tags', async (req, res) => {
+router.get('/buildings/:code/tags', cacheMiddleware, async (req, res) => {
     const { code } = req.params;
     try {
         const pool = await poolPromise;
@@ -232,7 +263,7 @@ router.get('/tags/search', async (req, res) => {
  * GET /tags/filters
  * Returns distinct filter options for building, system, commodity.
  */
-router.get('/tags/filters', async (req, res) => {
+router.get('/tags/filters', cacheMiddleware, async (req, res) => {
     try {
         const pool = await poolPromise;
         const [systems, commodities, buildings] = await Promise.all([
@@ -266,7 +297,7 @@ router.get('/tags/filters', async (req, res) => {
  *  - limit:       (Optional, default 1000) Max rows per series
  *  - aggregation: (Optional, default 'raw') raw|hourly|daily|weekly|monthly
  */
-router.get('/readings', async (req, res) => {
+router.get('/readings', cacheMiddleware, async (req, res) => {
     const { code, codes, startDate, endDate, limit, aggregation } = req.query;
     const maxRows = Math.min(parseInt(limit) || 1000, 10000);
     const aggMode = aggregation || 'raw';

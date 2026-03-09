@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { RouterProvider } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { PublicClientApplication, EventType } from '@azure/msal-browser';
@@ -31,12 +31,12 @@ msalInstance.initialize().then(() => {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <MsalProvider instance={msalInstance}>
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <App />
+            <RouterProvider router={App} />
           </ThemeProvider>
-        </BrowserRouter>
+        
       </MsalProvider>
     </React.StrictMode>
   );

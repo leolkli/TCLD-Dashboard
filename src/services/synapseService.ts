@@ -99,8 +99,37 @@ export const synapseService = {
     if (limit) qs.append('limit', String(limit));
     if (aggregation) qs.append('aggregation', aggregation);
 
-    const response = await apiService.get<MultiSeriesResponse>(`/readings?${qs.toString()}`);
-    return response.data;
+    try {
+      const response = await apiService.get<MultiSeriesResponse>(`/readings?${qs.toString()}`);
+      return response.data;
+    } catch (error) {
+      // Mock Fallback for design phase
+      console.warn('API call failed, generating mock multi-readings for', codes);
+      const points = limit || 24;
+      return {
+        series: codes.map((code) => {
+          const data = [];
+          const now = new Date(endDate || Date.now());
+          const start = new Date(startDate || now.getTime() - 24 * 60 * 60 * 1000);
+          const step = (now.getTime() - start.getTime()) / points;
+          
+          let lastVal = 50 + Math.random() * 50;
+          for (let i = 0; i < points; i++) {
+            lastVal += (Math.random() - 0.5) * 10;
+            data.push({
+              timestamp: new Date(start.getTime() + i * step).toISOString(),
+              value: Math.max(0, lastVal)
+            });
+          }
+          return {
+            code,
+            uom: 'kW',
+            tableName: 'MockTable',
+            data
+          };
+        })
+      };
+    }
   },
 
   // ── Saved Widgets CRUD ─────────────────────────────────────────

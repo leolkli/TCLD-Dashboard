@@ -72,6 +72,47 @@ export const ScaleSettings: React.FC = () => {
         </Stack>
       )}
 
+      {/* X-Axis Mode */}
+      {config.chart.type === 'scatter' && (
+        <>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+              X-Axis Range (Scatter Plot)
+            </Typography>
+            <ToggleButtonGroup
+              value={scales.xAxisMode}
+              exclusive
+              onChange={(_, val) => val && updateScales({ xAxisMode: val })}
+              size="small"
+            >
+              <ToggleButton value="auto" sx={{ px: 2 }}>Auto</ToggleButton>
+              <ToggleButton value="manual" sx={{ px: 2 }}>Manual</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {scales.xAxisMode === 'manual' && (
+            <Stack direction="row" spacing={1.5}>
+              <TextField
+                label="X Min"
+                type="number"
+                value={scales.xMin ?? ''}
+                onChange={(e) => updateScales({ xMin: e.target.value ? Number(e.target.value) : undefined })}
+                size="small"
+                fullWidth
+              />
+              <TextField
+                label="X Max"
+                type="number"
+                value={scales.xMax ?? ''}
+                onChange={(e) => updateScales({ xMax: e.target.value ? Number(e.target.value) : undefined })}
+                size="small"
+                fullWidth
+              />
+            </Stack>
+          )}
+        </>
+      )}
+
       {/* Precision */}
       <Box>
         <Typography variant="caption" color="text.secondary">

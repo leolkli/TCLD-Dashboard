@@ -4,28 +4,18 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Typography,
-  TextField,
-  Stack,
+  
+  
 } from '@mui/material';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
-import type { DateRangePreset, AggregationInterval } from '@/types/widget';
+import type { AggregationInterval } from '@/types/widget';
 
-const presets: { label: string; value: DateRangePreset }[] = [
-  { label: '1D', value: '1D' },
-  { label: '1W', value: '1W' },
-  { label: '1M', value: '1M' },
-  { label: '3M', value: '3M' },
-  { label: '6M', value: '6M' },
-  { label: '1Y', value: '1Y' },
-  { label: 'All', value: 'ALL' },
-  { label: 'Custom', value: 'custom' },
-];
+
 
 const aggregations: { label: string; value: AggregationInterval }[] = [
   { label: 'Raw', value: 'raw' },
   { label: 'Hourly', value: 'hourly' },
   { label: 'Daily', value: 'daily' },
-  { label: 'Weekly', value: 'weekly' },
   { label: 'Monthly', value: 'monthly' },
 ];
 
@@ -35,7 +25,7 @@ export const DateRangeSettings: React.FC = () => {
 
   return (
     <Box>
-      {/* Preset buttons */}
+      {/* Time Range and Custom Date hidden for now
       <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
         Time Range
       </Typography>
@@ -68,7 +58,6 @@ export const DateRangeSettings: React.FC = () => {
         ))}
       </ToggleButtonGroup>
 
-      {/* Custom date inputs */}
       {dateRange.preset === 'custom' && (
         <Stack spacing={1.5} sx={{ mb: 2 }}>
           <TextField
@@ -91,6 +80,7 @@ export const DateRangeSettings: React.FC = () => {
           />
         </Stack>
       )}
+      */}
 
       {/* Aggregation */}
       <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>

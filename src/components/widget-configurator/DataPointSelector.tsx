@@ -14,7 +14,8 @@ import {
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 import { TagSearchDialog } from './TagSearchDialog';
 
-export const DataPointSelector: React.FC = () => {
+interface Props { axis?: 'x' | 'y'; limit?: number; }
+export const DataPointSelector: React.FC<Props> = ({ axis = 'y', limit = 10 }) => {
   const { config, removeDataPoint, updateDataPointColor } = useWidgetConfigStore();
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -27,20 +28,20 @@ export const DataPointSelector: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography variant="body2" color="text.secondary">
-          {config.dataPoints.length} tag{config.dataPoints.length !== 1 ? 's' : ''} selected
+          {config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y').length} tag{config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y').length !== 1 ? 's' : ''} selected
         </Typography>
         <Button
           size="small"
           variant="outlined"
           startIcon={<AddIcon />}
           onClick={() => setDialogOpen(true)}
-          disabled={config.dataPoints.length >= 10}
+          disabled={config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y').length >= limit}
         >
           Add Tag
         </Button>
       </Box>
 
-      {config.dataPoints.length === 0 && (
+      {config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y').length === 0 && (
         <Box
           sx={{
             border: '2px dashed',
@@ -62,7 +63,7 @@ export const DataPointSelector: React.FC = () => {
       )}
 
       <Stack spacing={1} sx={{ mt: 1 }}>
-        {config.dataPoints.map((dp) => (
+        {config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y').map((dp) => (
           <Box
             key={dp.code}
             sx={{
@@ -116,7 +117,7 @@ export const DataPointSelector: React.FC = () => {
         ))}
       </Stack>
 
-      <TagSearchDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      <TagSearchDialog open={dialogOpen} onClose={() => setDialogOpen(false)} targetAxis={axis} />
     </Box>
   );
 };
