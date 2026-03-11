@@ -4,6 +4,7 @@ const path = require('path');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api');
+const vtagRoutes = require('./routes/vtags');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,6 +23,7 @@ app.use('/api', (req, res, next) => {
 
 // API Routes
 app.use('/api', apiRoutes);
+app.use('/api/vtags', vtagRoutes);
 
 // Serve React Frontend (Production)
 // In production (Azure Web App), NODE_ENV will be set to 'production'

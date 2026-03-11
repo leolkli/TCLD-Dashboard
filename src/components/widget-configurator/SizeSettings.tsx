@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Slider,
-  FormControlLabel,
-  Switch,
-  TextField,
-  Stack,
-} from '@mui/material';
+import { Flex, Switch, Input, Slider, Typography } from 'antd';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 
 export const SizeSettings: React.FC = () => {
@@ -15,53 +7,42 @@ export const SizeSettings: React.FC = () => {
   const { size } = config;
 
   return (
-    <Box>
-      <FormControlLabel
-        control={
-          <Switch
-            checked={size.useContainerSize}
-            onChange={(_, checked) => updateSize({ useContainerSize: checked })}
-            color="primary"
-          />
-        }
-        label="Auto-fit container"
-        sx={{ mb: 1 }}
-      />
+    <Flex vertical gap="middle">
+      <div>
+        <Switch checked={size.useContainerSize} onChange={(v) => updateSize({ useContainerSize: v })} />
+        <span style={{ marginLeft: 8 }}>Auto-fit container</span>
+      </div>
 
       {!size.useContainerSize && (
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField
-            label="Width"
+        <Flex vertical gap="small">
+          <Input
+            placeholder="Width (e.g. 100%, 600px)"
             value={size.width}
             onChange={(e) => updateSize({ width: e.target.value })}
-            placeholder="e.g. 100%, 600px"
-            fullWidth
-            size="small"
+            addonBefore="Width"
           />
-          <TextField
-            label="Height"
+          <Input
+            placeholder="Height (e.g. 100%, 400px)"
             value={size.height}
             onChange={(e) => updateSize({ height: e.target.value })}
-            placeholder="e.g. 100%, 400px"
-            fullWidth
-            size="small"
+            addonBefore="Height"
           />
-        </Stack>
+        </Flex>
       )}
 
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-        Grid Column Span (2-12)
-      </Typography>
-      <Slider
-        value={size.gridColSpan ?? 6}
-        onChange={(_, val) => updateSize({ gridColSpan: val as number })}
-        min={2}
-        max={12}
-        step={1}
-        marks
-        valueLabelDisplay="auto"
-        sx={{ mt: 1 }}
-      />
-    </Box>
+      <div>
+        <Typography.Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 12 }}>
+          Grid Column Span (2-12)
+        </Typography.Text>
+        <Slider
+          value={size.gridColSpan ?? 6}
+          onChange={(val) => updateSize({ gridColSpan: val })}
+          min={2}
+          max={12}
+          step={1}
+          marks={{ 2: '2', 6: '6', 12: '12' }}
+        />
+      </div>
+    </Flex>
   );
 };

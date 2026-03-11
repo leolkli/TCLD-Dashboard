@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, useMediaQuery, useTheme } from '@mui/material';
+import { Layout, Grid } from 'antd';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 
+const { useBreakpoint } = Grid;
+
 const SIDEBAR_WIDTH = 280;
-const SIDEBAR_COLLAPSED_WIDTH = 72;
+const SIDEBAR_COLLAPSED_WIDTH = 80;
 
 /**
  * Main Layout Component
  * Contains sidebar navigation and header
  */
 export const MainLayout: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const screens = useBreakpoint();
+  const isMobile = screens.md === false;
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const handleToggleSidebar = () => {
@@ -25,47 +27,23 @@ export const MainLayout: React.FC = () => {
     }
   };
 
-  const sidebarWidth = sidebarOpen ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH;
-
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
+    <Layout style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row' }}>
       <Sidebar
         open={sidebarOpen}
         mobileOpen={mobileDrawerOpen}
         onClose={() => setMobileDrawerOpen(false)}
-        width={sidebarWidth}
+        width={SIDEBAR_WIDTH}
         collapsedWidth={SIDEBAR_COLLAPSED_WIDTH}
       />
 
-      {/* Main Content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '100vh',
-          width: 0, // Let flexGrow handle the width
-          transition: theme.transitions.create('width', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-        }}
-      >
-        {/* Header */}
+      <Layout style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: '100vh' }}>
         <Header onToggleSidebar={handleToggleSidebar} />
 
-        {/* Page Content */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            backgroundColor: 'background.default',
-          }}
-        >
+        <Layout.Content style={{ backgroundColor: '#f0f2f5', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
           <Outlet />
-        </Box>
-      </Box>
-    </Box>
+        </Layout.Content>
+      </Layout>
+    </Layout>
   );
 };

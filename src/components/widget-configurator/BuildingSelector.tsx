@@ -1,30 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Autocomplete,
-  TextField,
-  Stack,
-  Typography,
-  Chip,
-  Box,
-  ToggleButton,
-  ToggleButtonGroup,
-} from '@mui/material';
-import {
-  Business as BusinessIcon,
-  AccountTree as PortfolioIcon,
-} from '@mui/icons-material';
+import { Flex, Select, Typography, Tag, Radio } from 'antd';
+import { BankOutlined, ApartmentOutlined } from '@ant-design/icons';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 import { synapseService } from '@/services/synapseService';
-import type { BuildingListItem, WidgetScope } from '@/types/widget';
+import type { WidgetScope } from '@/types/widget';
 
 interface PortfolioOption {
   name: string;
 }
 
 export const BuildingSelector: React.FC = () => {
-  const { config, buildings, setBuilding, setPortfolio, fetchBuildings } =
-    useWidgetConfigStore();
-
+  const { config, buildings, setBuilding, setPortfolio, fetchBuildings } = useWidgetConfigStore();
   const [portfolios, setPortfolios] = useState<PortfolioOption[]>([]);
 
   useEffect(() => {
@@ -33,7 +19,6 @@ export const BuildingSelector: React.FC = () => {
     }
   }, [buildings.length, fetchBuildings]);
 
-  // Fetch portfolios for portfolio-scope widgets
   useEffect(() => {
     const loadPortfolios = async () => {
       try {
@@ -48,14 +33,8 @@ export const BuildingSelector: React.FC = () => {
 
   const scope: WidgetScope = config.widgetScope || 'building';
 
-  const selectedBuilding =
-    buildings.find((b) => b.code === config.buildingCode) ?? null;
-
-  const selectedPortfolio =
-    portfolios.find((p) => p.name === config.portfolioName) ?? null;
-
-  const handleScopeChange = (_: unknown, value: WidgetScope | null) => {
-    if (!value) return;
+  const handleScopeChange = (e: any) => {
+    const value = e.target.value;
     if (value === 'building') {
       setBuilding('', '');
     } else {
@@ -63,141 +42,102 @@ export const BuildingSelector: React.FC = () => {
     }
   };
 
-  const handleBuildingChange = (_: unknown, value: BuildingListItem | null) => {
-    if (value) {
-      setBuilding(value.code, value.name);
+  const handleBuildingChange = (value: string | undefined, option: any) => {
+    if (value && option) {
+      setBuilding(value, option.label);
     } else {
       setBuilding('', '');
     }
   };
 
-  const handlePortfolioChange = (_: unknown, value: PortfolioOption | null) => {
-    setPortfolio(value?.name || '');
+  const handlePortfolioChange = (value: string | undefined) => {
+    setPortfolio(value || '');
   };
 
   return (
-    <Stack spacing={2}>
-      {/* Scope Toggle */}
-      <Box>
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+    <Flex vertical gap="middle">
+      <div>
+        <Typography.Text type="secondary" style={{ marginBottom: 4, display: 'block', fontSize: 12 }}>
           Widget Scope
-        </Typography>
-        <ToggleButtonGroup
-          value={scope}
-          exclusive
-          onChange={handleScopeChange}
-          size="small"
-          fullWidth
-        >
-          <ToggleButton value="building">
-            <BusinessIcon sx={{ mr: 0.5, fontSize: 16 }} /> Building
-          </ToggleButton>
-          <ToggleButton value="portfolio">
-            <PortfolioIcon sx={{ mr: 0.5, fontSize: 16 }} /> Portfolio
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+        </Typography.Text>
+        <Radio.Group value={scope} onChange={handleScopeChange} style={{ width: '100%' }}>
+          <Radio.Button value="building" style={{ width: '50%', textAlign: 'center' }}>
+            <BankOutlined style={{ marginRight: 4 }} /> Building
+          </Radio.Button>
+          <Radio.Button value="portfolio" style={{ width: '50%', textAlign: 'center' }}>
+            <ApartmentOutlined style={{ marginRight: 4 }} /> Portfolio
+          </Radio.Button>
+        </Radio.Group>
+      </div>
 
-      {/* Building Selector */}
       {scope === 'building' && (
         <>
-          <Autocomplete
-            options={buildings}
-            value={selectedBuilding}
+          <Select
+            allowClear
+            showSearch
+            placeholder="Search buildings..."
+            value={config.buildingCode || undefined}
             onChange={handleBuildingChange}
-            getOptionLabel={(opt) => `${opt.name} (${opt.code})`}
-            isOptionEqualToValue={(opt, val) => opt.code === val.code}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Building"
-                placeholder="Search buildings…"
-                size="small"
-              />
-            )}
-            renderOption={(props, option) => (
-              <Box component="li" {...props} key={option.code}>
-                <BusinessIcon
-                  sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }}
-                />
-                <Box>
-                  <Typography variant="body2">{option.name}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {option.code}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-            fullWidth
-            size="small"
+            options={buildings.map(b => ({
+              value: b.code,
+              label: b.name
+            }))}
+            filterOption={(input, option) =>
+              (option?.label ?? '').toLowerCase().includes(input.toLowerCase()) ||
+              (option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+            style={{ width: '100%' }}
           />
 
           {config.buildingCode && (
-            <Chip
-              icon={<BusinessIcon />}
-              label={`${config.buildingName} — ${config.buildingCode}`}
-              color="primary"
-              variant="outlined"
-              size="small"
-              onDelete={() => setBuilding('', '')}
-            />
+            <div>
+              <Tag icon={<BankOutlined />} color="blue" closable onClose={() => setBuilding('', '')}>
+                {config.buildingName} — {config.buildingCode}
+              </Tag>
+            </div>
           )}
 
           {!config.buildingCode && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               Select a building to scope tag search and attach this widget.
-            </Typography>
+            </Typography.Text>
           )}
         </>
       )}
 
-      {/* Portfolio Selector */}
       {scope === 'portfolio' && (
         <>
-          <Autocomplete
-            options={portfolios}
-            value={selectedPortfolio}
+          <Select
+            allowClear
+            showSearch
+            placeholder="Search portfolios..."
+            value={config.portfolioName || undefined}
             onChange={handlePortfolioChange}
-            getOptionLabel={(opt) => opt.name}
-            isOptionEqualToValue={(opt, val) => opt.name === val.name}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Portfolio"
-                placeholder="Search portfolios…"
-                size="small"
-              />
-            )}
-            renderOption={(props, option) => (
-              <Box component="li" {...props} key={option.name}>
-                <PortfolioIcon
-                  sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }}
-                />
-                <Typography variant="body2">{option.name}</Typography>
-              </Box>
-            )}
-            fullWidth
-            size="small"
+            options={portfolios.map(p => ({
+              value: p.name,
+              label: p.name
+            }))}
+            filterOption={(input, option) =>
+              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+            style={{ width: '100%' }}
           />
 
           {config.portfolioName && (
-            <Chip
-              icon={<PortfolioIcon />}
-              label={config.portfolioName}
-              color="secondary"
-              variant="outlined"
-              size="small"
-              onDelete={() => setPortfolio('')}
-            />
+            <div>
+              <Tag icon={<ApartmentOutlined />} color="purple" closable onClose={() => setPortfolio('')}>
+                {config.portfolioName}
+              </Tag>
+            </div>
           )}
 
           {!config.portfolioName && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               Select a portfolio. Tags from all buildings in the portfolio will be available.
-            </Typography>
+            </Typography.Text>
           )}
         </>
       )}
-    </Stack>
+    </Flex>
   );
 };

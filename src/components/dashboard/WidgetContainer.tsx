@@ -1,7 +1,15 @@
 import React from 'react';
-import { Box, Card, Typography, Skeleton, IconButton, Menu, MenuItem, Tooltip, Stack } from '@mui/material';
-import { ErrorOutline, MoreVert, Refresh, Fullscreen, OpenInNew } from '@mui/icons-material';
+import { Card, Typography, Skeleton, Dropdown, MenuProps, Tooltip, Button, Flex } from 'antd';
+import { 
+  ExclamationCircleOutlined, 
+  MoreOutlined, 
+  SyncOutlined, 
+  FullscreenOutlined, 
+  EditOutlined, 
+} from '@ant-design/icons';
 import type { WidgetConfiguration } from '@/types/widget';
+
+const { Text } = Typography;
 
 export interface WidgetContainerProps {
   config: WidgetConfiguration;
@@ -26,117 +34,83 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
   onRemove,
   children
 }) => {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  
-  const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const menuActions = [
-    { label: 'Refresh Data', icon: <Refresh fontSize="small" />, action: onRefresh },
-    { label: 'Edit Widget', icon: <OpenInNew fontSize="small" />, action: onEdit },
-    { label: 'Export Data', icon: undefined, action: onExport },
-    { label: 'Remove Widget', icon: undefined, action: onRemove, color: 'error.main' },
-  ].filter(item => item.action);
+  const menuItems: MenuProps['items'] = [
+    ...(onRefresh ? [{ key: 'refresh', label: 'Refresh Data', icon: <SyncOutlined />, onClick: onRefresh }] : []),
+      ...(onEdit ? [{ key: 'edit', label: 'Edit Widget', icon: <EditOutlined />, onClick: onEdit }] : []),
+    ...(onExport ? [{ key: 'export', label: 'Export Data', onClick: onExport }] : []),
+    ...(onRemove ? [{ key: 'remove', label: 'Remove Widget', danger: true, onClick: onRemove }] : []),
+  ];
 
   return (
     <Card 
-      sx={{ 
+      styles={{
+        body: { padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }
+      }}
+      style={{ 
         width: '100%', 
         height: '100%', 
         display: 'flex', 
         flexDirection: 'column', 
         overflow: 'hidden',
-        boxShadow: 2,
-        borderRadius: 2,
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        borderRadius: 8,
       }}
     >
       {/* Title Bar - draggable handle area */}
-      <Box 
+      <Flex 
         className="widget-header"
-        sx={{ 
-          px: 2, 
-          py: 1, 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          borderBottom: 1,
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
+        align="center" 
+        justify="space-between"
+        style={{ 
+          padding: '8px 16px', 
+          borderBottom: '1px solid var(--ant-color-border-secondary)',
+          backgroundColor: 'var(--ant-color-bg-container)',
           cursor: 'grab',
-          '&:active': { cursor: 'grabbing' }
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={1} overflow="hidden">
-          <Typography variant="subtitle2" component="div" noWrap title={config.name}>
+        <Flex align="center" gap={8} style={{ overflow: 'hidden' }}>
+          <Text strong ellipsis title={config.name} style={{ margin: 0, fontSize: '14px' }}>
             {config.header.visible ? config.name : ''}
-          </Typography>
-        </Stack>
+          </Text>
+        </Flex>
 
-        <Stack direction="row" alignItems="center" spacing={0.5}>
+        <Flex align="center" gap={4}>
           {onExpand && (
             <Tooltip title="Expand">
-              <IconButton size="small" onClick={onExpand}>
-                <Fullscreen fontSize="small" />
-              </IconButton>
+              <Button type="text" size="small" icon={<FullscreenOutlined />} onClick={onExpand} />
             </Tooltip>
           )}
 
-          {menuActions.length > 0 && (
-            <>
-              <IconButton size="small" onClick={handleMenuOpen}>
-                <MoreVert fontSize="small" />
-              </IconButton>
-              <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-                transformOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-              >
-                {menuActions.map((item, index) => (
-                  <MenuItem 
-                    key={index} 
-                    onClick={() => { item.action?.(); handleMenuClose(); }}
-                    sx={{ color: item.color, fontSize: '0.875rem' }}
-                  >
-                    {item.icon && <Box component="span" sx={{ mr: 1, display: 'flex' }}>{item.icon}</Box>}
-                    {item.label}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </>
+          {menuItems.length > 0 && (
+            <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+              <Button type="text" size="small" icon={<MoreOutlined />} />
+            </Dropdown>
           )}
-        </Stack>
-      </Box>
+        </Flex>
+      </Flex>
 
       {/* Content Area */}
-      <Box sx={{ flexGrow: 1, position: 'relative', overflow: 'hidden', bgcolor: config.chart?.backgroundColor || 'background.paper' }}>
+      <div style={{ flexGrow: 1, position: 'relative', overflow: 'hidden', backgroundColor: config.chart?.backgroundColor || 'var(--ant-color-bg-container)' }}>
         {error ? (
-          <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'error.main' }}>
-            <ErrorOutline sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="body2" textAlign="center">{error.message || 'Failed to load data'}</Typography>
+          <Flex vertical align="center" justify="center" style={{ padding: 24, height: '100%', color: 'var(--ant-color-error)' }}>
+            <ExclamationCircleOutlined style={{ fontSize: 40, marginBottom: 8 }} />
+            <Text type="danger" style={{ textAlign: 'center' }}>{error.message || 'Failed to load data'}</Text>
             {onRefresh && (
-              <IconButton onClick={onRefresh} sx={{ mt: 2 }} color="inherit">
-                <Refresh />
-              </IconButton>
+              <Button type="text" onClick={onRefresh} style={{ marginTop: 16 }} icon={<SyncOutlined />} />
             )}
-          </Box>
+          </Flex>
         ) : isLoading ? (
-          <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Skeleton variant="text" width="60%" height={24} />
-            <Skeleton variant="rectangular" width="100%" height="100%" sx={{ mt: 1, borderRadius: 1 }} />
-          </Box>
+          <Flex vertical style={{ padding: 16, height: '100%' }}>
+            <Skeleton active title={{ width: '60%' }} paragraph={{ rows: 0 }} />
+            <Skeleton.Button active style={{ width: '100%', height: '100%', marginTop: 8 }} block />
+          </Flex>
         ) : (
-          <Box sx={{ height: '100%', width: '100%', p: 1 }}>
+          <div style={{ height: '100%', width: '100%', padding: 8 }}>
             {children}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
     </Card>
   );
 };

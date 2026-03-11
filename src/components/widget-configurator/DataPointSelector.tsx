@@ -1,20 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  Stack,
-  Button,
-  Tooltip,
-} from '@mui/material';
-import {
-  Add as AddIcon,
-  Close as CloseIcon,
-} from '@mui/icons-material';
+import { Flex, Typography, Button, Tooltip } from 'antd';
+import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 import { TagSearchDialog } from './TagSearchDialog';
 
 interface Props { axis?: 'x' | 'y'; limit?: number; }
+
 export const DataPointSelector: React.FC<Props> = ({ axis = 'y', limit = 10 }) => {
   const { config, removeDataPoint, updateDataPointColor } = useWidgetConfigStore();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -24,100 +15,87 @@ export const DataPointSelector: React.FC<Props> = ({ axis = 'y', limit = 10 }) =
     [removeDataPoint],
   );
 
+  const points = config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y');
+
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          {config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y').length} tag{config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y').length !== 1 ? 's' : ''} selected
-        </Typography>
+    <div>
+      <Flex align="center" justify="space-between" style={{ marginBottom: 8 }}>
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          {points.length} tag{points.length !== 1 ? 's' : ''} selected
+        </Typography.Text>
         <Button
           size="small"
-          variant="outlined"
-          startIcon={<AddIcon />}
+          icon={<PlusOutlined />}
           onClick={() => setDialogOpen(true)}
-          disabled={config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y').length >= limit}
+          disabled={points.length >= limit}
         >
           Add Tag
         </Button>
-      </Box>
+      </Flex>
 
-      {config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y').length === 0 && (
-        <Box
-          sx={{
-            border: '2px dashed',
-            borderColor: 'grey.300',
-            borderRadius: 2,
-            p: 3,
+      {points.length === 0 && (
+        <div
+          style={{
+            border: '2px dashed #d9d9d9',
+            borderRadius: 8,
+            padding: 24,
             textAlign: 'center',
             cursor: 'pointer',
-            '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover' },
             transition: 'all 0.2s',
           }}
           onClick={() => setDialogOpen(true)}
         >
-          <AddIcon sx={{ fontSize: 32, color: 'text.disabled', mb: 0.5 }} />
-          <Typography variant="body2" color="text.disabled">
-            Click to search &amp; add data points
-          </Typography>
-        </Box>
+          <PlusOutlined style={{ fontSize: 32, color: 'rgba(0,0,0,0.25)', marginBottom: 4 }} />
+          <div style={{ color: 'rgba(0,0,0,0.25)', fontSize: 14 }}>
+            Click to search & add data points
+          </div>
+        </div>
       )}
 
-      <Stack spacing={1} sx={{ mt: 1 }}>
-        {config.dataPoints.filter(dp => dp.axis ? dp.axis === axis : axis === 'y').map((dp) => (
-          <Box
+      <Flex vertical gap="small" style={{ marginTop: 8 }}>
+        {points.map((dp) => (
+          <Flex
             key={dp.code}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              p: 1,
-              borderRadius: 1.5,
-              bgcolor: 'grey.50',
-              border: '1px solid',
-              borderColor: 'grey.200',
+            align="center"
+            gap="small"
+            style={{
+              padding: 8,
+              borderRadius: 6,
+              backgroundColor: '#fafafa',
+              border: '1px solid #f0f0f0',
             }}
           >
-            {/* Color dot / picker */}
             <Tooltip title="Click to change color">
-              <Box
-                component="input"
+              <input
                 type="color"
                 value={dp.color}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  updateDataPointColor(dp.code, e.target.value)
-                }
-                sx={{
+                onChange={(e) => updateDataPointColor(dp.code, e.target.value)}
+                style={{
                   width: 24,
                   height: 24,
                   border: 'none',
                   borderRadius: '50%',
                   cursor: 'pointer',
-                  p: 0,
-                  '&::-webkit-color-swatch': { borderRadius: '50%', border: 'none' },
-                  '&::-webkit-color-swatch-wrapper': { p: 0 },
+                  padding: 0,
                 }}
               />
             </Tooltip>
 
-            {/* Info */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={600} noWrap>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Typography.Text strong style={{ display: 'block' }} ellipsis>
                 {dp.name || dp.code}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" noWrap>
+              </Typography.Text>
+              <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }} ellipsis>
                 {dp.building} &middot; {dp.system} &middot; {dp.uom}
-              </Typography>
-            </Box>
+              </Typography.Text>
+            </div>
 
-            {/* Remove */}
-            <IconButton size="small" onClick={() => handleRemove(dp.code)}>
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Box>
+            <Button type="text" size="small" icon={<CloseOutlined />} onClick={() => handleRemove(dp.code)} />
+          </Flex>
         ))}
-      </Stack>
+      </Flex>
 
       <TagSearchDialog open={dialogOpen} onClose={() => setDialogOpen(false)} targetAxis={axis} />
-    </Box>
+    </div>
   );
 };

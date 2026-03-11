@@ -1,17 +1,10 @@
 import { useNavigate } from 'react-router-dom';
+import { Card, Row, Col, Typography, Flex } from 'antd';
 import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  CardActionArea,
-} from '@mui/material';
-import {
-  People as UsersIcon,
-  Widgets as TemplatesIcon,
-  Functions as VtagIcon,
-} from '@mui/icons-material';
+  TeamOutlined as UsersIcon,
+  AppstoreOutlined as TemplatesIcon,
+  FunctionOutlined as VtagIcon,
+} from '@ant-design/icons';
 import { useAuthStore } from '@store/authStore';
 
 const adminCards = [
@@ -41,6 +34,8 @@ const adminCards = [
   },
 ];
 
+const { Title, Text } = Typography;
+
 /**
  * Admin Page Component
  * Landing page for administration features
@@ -54,54 +49,55 @@ export const AdminPage: React.FC = () => {
   );
 
   return (
-    <Box>
+    <div style={{ width: '100%', padding: '24px' }}>
       {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
+      <div style={{ marginBottom: 32 }}>
+        <Title level={2} style={{ margin: 0, marginBottom: 8 }}>
           Administration
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+        </Title>
+        <Text type="secondary">
           Manage users, templates, and system configuration
-        </Typography>
-      </Box>
+        </Text>
+      </div>
 
       {/* Admin Cards */}
-      <Grid container spacing={3}>
-        {visibleCards.map((card) => (
-          <Grid item xs={12} sm={6} lg={4} key={card.path}>
-            <Card>
-              <CardActionArea onClick={() => navigate(card.path)}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                      mb: 2,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 2,
+      <Row gutter={[24, 24]}>
+        {visibleCards.map((card) => {
+          const IconComponent = card.icon;
+          return (
+            <Col xs={24} sm={12} lg={8} key={card.path}>
+              <Card
+                hoverable
+                onClick={() => navigate(card.path)}
+                style={{ height: '100%', cursor: 'pointer' }}
+              >
+                <Flex vertical style={{ width: '100%' }} gap={16}>
+                  <Flex align="center" gap={16}>
+                    <div
+                      style={{
+                        padding: 12,
+                        borderRadius: 8,
                         backgroundColor: `${card.color}15`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
-                      <card.icon sx={{ color: card.color, fontSize: 32 }} />
-                    </Box>
-                    <Typography variant="h6" fontWeight={600}>
+                      <IconComponent
+                        style={{ color: card.color, fontSize: 32 }}
+                      />
+                    </div>
+                    <Title level={5} style={{ margin: 0 }}>
                       {card.title}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {card.description}
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
+                    </Title>
+                  </Flex>
+                  <Text type="secondary">{card.description}</Text>
+                </Flex>
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
+    </div>
   );
 };

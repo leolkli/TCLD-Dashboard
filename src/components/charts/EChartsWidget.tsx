@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
 import * as echarts from 'echarts/core';
 import {
@@ -25,7 +25,7 @@ import type {
   SelectedDataPoint,
   SeriesDataMap,
 } from '@/types/widget';
-import { useTheme } from '@mui/material/styles';
+import { theme } from 'antd';
 
 // Register ECharts modules
 echarts.use([
@@ -57,14 +57,14 @@ export const EChartsWidget: React.FC<EChartsWidgetProps> = ({
   data,
   height = '100%',
 }) => {
-  const muiTheme = useTheme();
+  const { token } = theme.useToken();
 
   const option = useMemo(() => {
     const { dataPoints, chart, scales, comparison } = config;
 
     if (dataPoints.length === 0) return {};
 
-    // ─── Special Cases Logic ──────────────────────────────────────────
+    //  Special Cases Logic 
 
     // 1. Comparing Categories
     if (chart.relationship === 'comparing-categories') {
@@ -155,7 +155,7 @@ export const EChartsWidget: React.FC<EChartsWidgetProps> = ({
        };
     }
 
-    // ─── Standard Time-Series Logic ──────────────────────────────────
+    //  Standard Time-Series Logic 
     
     const isMultiPeriodBar = chart.type === 'bar' && comparison.enabled;
 
@@ -200,7 +200,7 @@ export const EChartsWidget: React.FC<EChartsWidgetProps> = ({
            name: `${dp.name} (Baseline)`,
            data: baselineData,
            type: 'bar',
-           itemStyle: { color: muiTheme.palette.text.disabled, borderRadius: [4, 4, 0, 0] },
+           itemStyle: { color: token.colorTextDisabled, borderRadius: [4, 4, 0, 0] },
            stack: chart.barLayout === 'stacked' ? 'baseline' : undefined
         });
       }
@@ -214,15 +214,15 @@ export const EChartsWidget: React.FC<EChartsWidgetProps> = ({
       {
         type: scales.scaleType === 'log' ? 'log' : 'value',
         name: dataPoints[0]?.uom || '',
-        nameTextStyle: { color: muiTheme.palette.text.secondary, fontSize: 11 },
+        nameTextStyle: { color: token.colorTextSecondary, fontSize: 11 },
         axisLabel: {
-          color: muiTheme.palette.text.secondary,
+          color: token.colorTextSecondary,
           fontSize: 11,
           formatter: (val: number) => val.toFixed(scales.precision),
         },
         splitLine: {
           show: chart.showGridLines,
-          lineStyle: { color: muiTheme.palette.divider, type: 'dashed' },
+          lineStyle: { color: token.colorBorder, type: 'dashed' },
         },
         ...(scales.yAxisMode === 'manual' && scales.yMin !== undefined ? { min: scales.yMin } : {}),
         ...(scales.yAxisMode === 'manual' && scales.yMax !== undefined ? { max: scales.yMax } : {}),
@@ -234,8 +234,8 @@ export const EChartsWidget: React.FC<EChartsWidgetProps> = ({
       yAxes.push({
         type: scales.scaleType === 'log' ? 'log' : 'value',
         name: dataPoints[1]?.uom || '',
-        nameTextStyle: { color: muiTheme.palette.text.secondary, fontSize: 11 },
-        axisLabel: { color: muiTheme.palette.text.secondary, fontSize: 11 },
+        nameTextStyle: { color: token.colorTextSecondary, fontSize: 11 },
+        axisLabel: { color: token.colorTextSecondary, fontSize: 11 },
         splitLine: { show: false },
         position: 'right',
       });
@@ -254,16 +254,16 @@ export const EChartsWidget: React.FC<EChartsWidgetProps> = ({
       },
       tooltip: {
         trigger: 'axis',
-        backgroundColor: muiTheme.palette.background.paper,
-        borderColor: muiTheme.palette.divider,
+        backgroundColor: token.colorBgContainer,
+        borderColor: token.colorBorder,
         borderWidth: 1,
-        textStyle: { color: muiTheme.palette.text.primary, fontSize: 12 },
+        textStyle: { color: token.colorText, fontSize: 12 },
         axisPointer: { type: 'cross' },
       },
       legend: {
         show: series.length > 1,
         top: 4,
-        textStyle: { color: muiTheme.palette.text.secondary, fontSize: 12 },
+        textStyle: { color: token.colorTextSecondary, fontSize: 12 },
         icon: 'roundRect',
       },
       toolbox: {
@@ -274,12 +274,12 @@ export const EChartsWidget: React.FC<EChartsWidgetProps> = ({
           dataZoom: { yAxisIndex: 'none', title: { zoom: 'Zoom', back: 'Reset' } },
           restore: { title: 'Reset' },
         },
-        iconStyle: { borderColor: muiTheme.palette.text.secondary },
+        iconStyle: { borderColor: token.colorTextSecondary },
       },
       xAxis: {
         type: chart.barLayout === 'horizontal' ? 'value' : 'time',
-        axisLabel: { color: muiTheme.palette.text.secondary, fontSize: 11 },
-        axisLine: { lineStyle: { color: muiTheme.palette.divider } },
+        axisLabel: { color: token.colorTextSecondary, fontSize: 11 },
+        axisLine: { lineStyle: { color: token.colorBorder } },
         splitLine: { show: chart.barLayout === 'horizontal' },
         ...(scales.xAxisMode === 'manual' && scales.xMin !== undefined ? { min: scales.xMin } : {}),
         ...(scales.xAxisMode === 'manual' && scales.xMax !== undefined ? { max: scales.xMax } : {}),
@@ -293,16 +293,16 @@ export const EChartsWidget: React.FC<EChartsWidgetProps> = ({
           end: 100,
           height: 24,
           bottom: 8,
-          borderColor: muiTheme.palette.divider,
-          backgroundColor: muiTheme.palette.grey[100],
-          fillerColor: `${muiTheme.palette.primary.main}20`,
-          handleStyle: { color: muiTheme.palette.primary.main },
-          textStyle: { color: muiTheme.palette.text.secondary, fontSize: 10 },
+          borderColor: token.colorBorder,
+          backgroundColor: token.colorFillQuaternary,
+          fillerColor: `${token.colorPrimary}20`,
+          handleStyle: { color: token.colorPrimary },
+          textStyle: { color: token.colorTextSecondary, fontSize: 10 },
         },
       ],
       series,
     };
-  }, [config, data, muiTheme]);
+  }, [config, data, token]);
 
   return (
     <ReactEChartsCore
@@ -315,4 +315,3 @@ export const EChartsWidget: React.FC<EChartsWidgetProps> = ({
     />
   );
 };
-

@@ -1,29 +1,28 @@
 import React, { useState } from 'react';
 import { 
-  Box, 
+  Flex, 
   Button, 
-  Stack, 
-  MenuItem, 
   Select, 
-  FormControl, 
-  Typography,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField
-} from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import SaveIcon from '@mui/icons-material/Save';
-import AddIcon from '@mui/icons-material/Add';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+  Typography, 
+  Tag, 
+  Modal, 
+  Input, 
+  Space 
+} from 'antd';
+import { 
+  EditOutlined, 
+  SaveOutlined, 
+  PlusOutlined, 
+  CalendarOutlined 
+} from '@ant-design/icons';
 
 import { useDashboardGlobalStore } from '@/store/dashboardGlobalStore';
 import { useDashboardStore } from '@/store/dashboardStore';
 import type { DateRangePreset } from '@/types/widget';
 
-const PRESETS: { label: string; value: DateRangePreset }[] = [
+const { Title } = Typography;
+
+const PRESETS = [
   { label: 'Today', value: '1D' },
   { label: 'Last 7 Days', value: '1W' },
   { label: 'Last 30 Days', value: '1M' },
@@ -31,6 +30,7 @@ const PRESETS: { label: string; value: DateRangePreset }[] = [
   { label: 'Last 6 Months', value: '6M' },
   { label: 'Last Year', value: '1Y' },
   { label: 'All Time', value: 'ALL' },
+  { label: 'Custom Range', value: 'custom' }
 ];
 
 export const DashboardToolbar: React.FC = () => {
@@ -78,75 +78,59 @@ export const DashboardToolbar: React.FC = () => {
   };
 
   return (
-    <Box 
-      sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 2,
-        mb: 3,
-        p: 2,
-        bgcolor: 'background.paper',
-        borderRadius: 2,
-        boxShadow: 1
+    <Flex 
+      align="center" 
+      justify="space-between" 
+      wrap="wrap" 
+      gap={16} 
+      style={{
+        marginBottom: 24,
+        padding: 16,
+        backgroundColor: 'var(--ant-color-bg-container)',
+        borderRadius: 8,
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
       }}
     >
       {/* Left side: Title and Status */}
-      <Stack direction="row" alignItems="center" spacing={2}>
-        <Typography variant="h5" fontWeight={700}>
+      <Flex align="center" gap={16}>
+        <Title level={4} style={{ margin: 0 }}>
           {currentDashboard?.name || 'Dashboard'}
-        </Typography>
+        </Title>
         {isEditMode && (
-          <Chip label="Editing Layout" color="warning" size="small" variant="outlined" />
+          <Tag color="warning" bordered={false}>Editing Layout</Tag>
         )}
-      </Stack>
+      </Flex>
 
       {/* Right side: Global Filters & Actions */}
-      <Stack direction="row" alignItems="center" spacing={2}>
+      <Flex align="center" gap={16}>
         {/* Global Date Filter */}
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <Select
-            value={globalFilters.dateRange.preset}
-            onChange={(e) => handleDatePresetChange(e.target.value as string)}
-            displayEmpty
-            startAdornment={<CalendarMonthIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />}
-            sx={{ 
-              bgcolor: 'background.default',
-              '.MuiSelect-select': { display: 'flex', alignItems: 'center' }
-            }}
-          >
-            {PRESETS.map((preset) => (
-              <MenuItem key={preset.value} value={preset.value}>
-                {preset.label}
-              </MenuItem>
-            ))}
-            <MenuItem value="custom">Custom Range</MenuItem>
-          </Select>
-        </FormControl>
+        <Select
+          value={globalFilters.dateRange.preset}
+          onChange={handleDatePresetChange}
+          style={{ width: 160 }}
+          options={PRESETS}
+          suffixIcon={<CalendarOutlined />}
+        />
 
         {/* Action Buttons */}
         {isEditMode ? (
           <>
             <Button 
-              variant="outlined" 
-              startIcon={<AddIcon />}
+              icon={<PlusOutlined />}
               onClick={() => setWidgetLibraryOpen(true)}
             >
               Add Widget
             </Button>
             <Button 
-              variant="contained" 
-              color="primary" 
-              startIcon={<SaveIcon />}
+              type="primary" 
+              icon={<SaveOutlined />}
               onClick={handleSave}
-              disabled={isSaving}
+              loading={isSaving}
             >
               {isSaving ? 'Saving...' : 'Save Layout'}
             </Button>
             <Button 
-              variant="text" 
-              color="inherit"
+              type="text" 
               onClick={() => setEditMode(false)}
               disabled={isSaving}
             >
@@ -155,42 +139,36 @@ export const DashboardToolbar: React.FC = () => {
           </>
         ) : (
           <Button 
-            variant="outlined" 
-            startIcon={<EditIcon />}
+            icon={<EditOutlined />}
             onClick={() => setEditMode(true)}
           >
             Edit Layout
           </Button>
         )}
-      </Stack>
+      </Flex>
 
-      <Dialog open={customDialogOpen} onClose={() => setCustomDialogOpen(false)}>
-        <DialogTitle>Select Custom Date Range</DialogTitle>
-        <DialogContent>
-          <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label="Start Date"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={tempStart}
-              onChange={(e) => setTempStart(e.target.value)}
-            />
-            <TextField
-              label="End Date"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={tempEnd}
-              onChange={(e) => setTempEnd(e.target.value)}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCustomDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleApplyCustomDate}>
-            Apply
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+      <Modal 
+        title="Select Custom Date Range" 
+        open={customDialogOpen} 
+        onCancel={() => setCustomDialogOpen(false)}
+        onOk={handleApplyCustomDate}
+        okText="Apply"
+      >
+        <Space style={{ marginTop: 8 }} size="middle">
+          <Input
+            type="date"
+            placeholder="Start Date"
+            value={tempStart}
+            onChange={(e) => setTempStart(e.target.value)}
+          />
+          <Input
+            type="date"
+            placeholder="End Date"
+            value={tempEnd}
+            onChange={(e) => setTempEnd(e.target.value)}
+          />
+        </Space>
+      </Modal>
+    </Flex>
   );
 };

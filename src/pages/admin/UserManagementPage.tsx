@@ -1,29 +1,23 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
-  Box,
   Typography,
   Card,
-  CardContent,
   Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  TextField,
-  InputAdornment,
-  Chip,
-  IconButton,
-  Avatar,
+  Input,
+  Tag,
+  Button,
   Tooltip,
-} from '@mui/material';
+  Avatar,
+  Space
+} from 'antd';
 import {
-  Search as SearchIcon,
-  Edit as EditIcon,
-  MoreVert as MoreIcon,
-} from '@mui/icons-material';
+  SearchOutlined,
+  EditOutlined,
+  MoreOutlined
+} from '@ant-design/icons';
 import type { UserWithRoles } from '@/types';
+
+const { Title, Text } = Typography;
 
 // Mock user data
 const mockUsers: UserWithRoles[] = [
@@ -74,9 +68,9 @@ const mockUsers: UserWithRoles[] = [
   },
 ];
 
-const roleColors: Record<string, 'error' | 'warning' | 'default'> = {
-  super_admin: 'error',
-  building_admin: 'warning',
+const roleColors: Record<string, string> = {
+  super_admin: 'volcano',
+  building_admin: 'orange',
   user: 'default',
 };
 
@@ -92,8 +86,6 @@ const roleLabels: Record<string, string> = {
  */
 export const UserManagementPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const filteredUsers = mockUsers.filter(
     (u) =>
@@ -101,118 +93,103 @@ export const UserManagementPage: React.FC = () => {
       u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const columns = [
+    {
+      title: 'User',
+      key: 'user',
+      render: (_: any, record: UserWithRoles) => (
+        <Space>
+          <Avatar style={{ backgroundColor: '#1677ff' }}>
+            {record.displayName.charAt(0)}
+          </Avatar>
+          <Text strong>{record.displayName}</Text>
+        </Space>
+      )
+    },
+    {
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+    },
+    {
+      title: 'Role',
+      key: 'roles',
+      dataIndex: 'roles',
+      render: (roles: string[]) => (
+        <>
+          {roles.map((role) => (
+            <Tag color={roleColors[role] || 'default'} key={role}>
+              {roleLabels[role] || role}
+            </Tag>
+          ))}
+        </>
+      ),
+    },
+    {
+      title: 'Status',
+      key: 'isActive',
+      dataIndex: 'isActive',
+      render: (isActive: boolean) => (
+        <Tag color={isActive ? 'success' : 'default'}>
+          {isActive ? 'Active' : 'Inactive'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Last Login',
+      key: 'lastLoginAt',
+      dataIndex: 'lastLoginAt',
+      render: (date: string) => date ? new Date(date).toLocaleDateString() : 'Never'
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      align: 'right' as const,
+      render: () => (
+        <Space size="small">
+          <Tooltip title="Edit">
+            <Button type="text" icon={<EditOutlined />} />
+          </Tooltip>
+          <Tooltip title="More">
+            <Button type="text" icon={<MoreOutlined />} />
+          </Tooltip>
+        </Space>
+      )
+    }
+  ];
+
   return (
-    <Box>
+    <div style={{ padding: '0 0 24px 0' }}>
       {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          User Management
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Manage user roles and building access permissions
-        </Typography>
-      </Box>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={3} style={{ margin: 0 }}>User Management</Title>
+        <Text type="secondary">Manage user roles and building access permissions</Text>
+      </div>
 
       {/* Search and Actions */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
-        <TextField
+      <div style={{ marginBottom: 24 }}>
+        <Input
           placeholder="Search users..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          size="small"
-          sx={{ width: 300 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
+          prefix={<SearchOutlined style={{ color: 'rgba(0,0,0,.25)' }} />}
+          style={{ width: 300 }}
         />
-      </Box>
+      </div>
 
       {/* Users Table */}
-      <Card>
-        <CardContent sx={{ p: 0 }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>User</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Last Login</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredUsers
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((user) => (
-                    <TableRow key={user.id} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar sx={{ bgcolor: 'primary.main' }}>
-                            {user.displayName.charAt(0)}
-                          </Avatar>
-                          <Typography fontWeight={500}>{user.displayName}</Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        {user.roles.map((role) => (
-                          <Chip
-                            key={role}
-                            label={roleLabels[role] || role}
-                            size="small"
-                            color={roleColors[role] || 'default'}
-                            sx={{ mr: 0.5 }}
-                          />
-                        ))}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={user.isActive ? 'Active' : 'Inactive'}
-                          size="small"
-                          color={user.isActive ? 'success' : 'default'}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {user.lastLoginAt
-                          ? new Date(user.lastLoginAt).toLocaleDateString()
-                          : 'Never'}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Tooltip title="Edit">
-                          <IconButton size="small">
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="More">
-                          <IconButton size="small">
-                            <MoreIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            component="div"
-            count={filteredUsers.length}
-            page={page}
-            onPageChange={(_, newPage) => setPage(newPage)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-          />
-        </CardContent>
+      <Card variant="borderless" className="shadow-sm" styles={{ body: { padding: 0 } }}>
+        <Table
+          columns={columns}
+          dataSource={filteredUsers}
+          rowKey="id"
+          pagination={{
+            defaultPageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
+          }}
+        />
       </Card>
-    </Box>
+    </div>
   );
 };

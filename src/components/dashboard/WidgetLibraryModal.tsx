@@ -1,25 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Modal,
   Button,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
   Typography,
-  TextField,
+  Input,
   Pagination,
-  Box,
-  InputAdornment,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
+  Flex
+} from 'antd';
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useDashboardGlobalStore } from '@/store/dashboardGlobalStore';
 import { useDashboardStore } from '@/store/dashboardStore';
+
+const { Text } = Typography;
 
 export const WidgetLibraryModal: React.FC = () => {
   const { isWidgetLibraryOpen, setWidgetLibraryOpen } = useDashboardGlobalStore();
@@ -60,79 +52,83 @@ export const WidgetLibraryModal: React.FC = () => {
     return filtered;
   }, [savedWidgets, currentDashboard, searchQuery]);
 
-  const pageCount = Math.ceil(filteredWidgets.length / itemsPerPage);
   const paginatedWidgets = filteredWidgets.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
-    setPage(value);
+  const handlePageChange = (page: number) => {
+    setPage(page);
   };
 
   return (
-    <Dialog open={isWidgetLibraryOpen} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Widget Library</DialogTitle>
-      <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2, minHeight: '400px' }}>
-        <TextField
-          placeholder="Search by widget name..."
-          variant="outlined"
-          size="small"
-          fullWidth
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setPage(1);
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          }}
-        />
+    <Modal 
+      open={isWidgetLibraryOpen} 
+      onCancel={handleClose} 
+      title="Widget Library"
+      footer={[
+        <Button key="done" onClick={handleClose}>
+          Done
+        </Button>
+      ]}
+      width={600}
+      styles={{
+        body: { display: 'flex', flexDirection: 'column', gap: 16, minHeight: '400px', paddingTop: 16 }
+      }}
+    >
+      <Input
+        placeholder="Search by widget name..."
+        prefix={<SearchOutlined />}
+        value={searchQuery}
+        onChange={(e) => {
+          setSearchQuery(e.target.value);
+          setPage(1);
+        }}
+        allowClear
+      />
 
-        {filteredWidgets.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
-            No saved widgets found.
-          </Typography>
-        ) : (
-          <>
-            <List sx={{ flex: 1 }}>
-              {paginatedWidgets.map((widget) => (
-                <ListItem key={widget.id} divider>
-                  <ListItemText
-                    primary={widget.name}
-                    secondary={`${widget.chart.type.toUpperCase()} • ${widget.dataPoints.length} Metrics`}
+      {filteredWidgets.length === 0 ? (
+        <Text type="secondary" style={{ marginTop: 16, textAlign: 'center', display: 'block' }}>
+          No saved widgets found.
+        </Text>
+      ) : (
+        <Flex vertical style={{ flex: 1, justifyContent: 'space-between' }}>
+            <Flex vertical gap={0}>
+              {paginatedWidgets.map(widget => (
+                <Flex
+                  key={widget.id}
+                  justify="space-between"
+                  align="center"
+                  style={{
+                    padding: '12px 0',
+                    borderBottom: '1px solid #f0f0f0'
+                  }}
+                >
+                  <div>
+                    <Typography.Text strong style={{ display: 'block' }}>{widget.name}</Typography.Text>
+                    <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                      {`${widget.chart.type.toUpperCase()} • ${widget.dataPoints.length} Metrics`}
+                    </Typography.Text>
+                  </div>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => handleAddWidget(widget.id!, widget.name)}
+                    aria-label="add"
                   />
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      color="primary"
-                      onClick={() => handleAddWidget(widget.id!, widget.name)}
-                      aria-label="add"
-                    >
-                      <AddIcon />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
+                </Flex>
               ))}
-            </List>
-            
-            {pageCount > 1 && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                <Pagination 
-                  count={pageCount} 
-                  page={page} 
-                  onChange={handlePageChange} 
-                  color="primary" 
-                />
-              </Box>
-            )}
-          </>
-        )}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Done</Button>
-      </DialogActions>
-    </Dialog>
+            </Flex>
+          {filteredWidgets.length > itemsPerPage && (
+            <Flex justify="center" style={{ marginTop: 16 }}>
+              <Pagination 
+                current={page} 
+                total={filteredWidgets.length} 
+                pageSize={itemsPerPage} 
+                onChange={handlePageChange} 
+                showSizeChanger={false}
+              />
+            </Flex>
+          )}
+        </Flex>
+      )}
+    </Modal>
   );
 };

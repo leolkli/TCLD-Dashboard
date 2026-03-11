@@ -1,29 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Box,
-  MenuItem,
-  Typography,
-  List,
-  ListItemButton,
-  ListItemText,
-  Checkbox,
-  InputAdornment,
-  CircularProgress,
-  Chip,
-  Stack,
-  IconButton,
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-  Close as CloseIcon,
-  FilterList as FilterIcon,
-} from '@mui/icons-material';
+import { Modal, Input, Button, Checkbox, Tag, Flex, Typography, Select, Spin } from 'antd';
+import { SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 import { synapseService } from '@/services/synapseService';
 import type { SynapsePTag } from '@/types/synapse';
@@ -48,29 +25,17 @@ export const TagSearchDialog: React.FC<TagSearchDialogProps> = ({ open, onClose,
   const [showFilters, setShowFilters] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // Sync building filter when dialog opens
   useEffect(() => {
     if (open) {
       setBuilding(config.buildingCode || '');
     }
   }, [open, config.buildingCode]);
 
-  // Load filter options on mount
   useEffect(() => {
     if (open && filterOptions.buildings.length === 0) {
       fetchFilterOptions();
     }
   }, [open, filterOptions.buildings.length, fetchFilterOptions]);
-
-  // Debounced search
-  useEffect(() => {
-    if (!open) return;
-    const timer = setTimeout(() => {
-      handleSearch();
-    }, 400);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, building, system, commodity, open]);
 
   const handleSearch = useCallback(async () => {
     setLoading(true);
@@ -93,6 +58,14 @@ export const TagSearchDialog: React.FC<TagSearchDialogProps> = ({ open, onClose,
     }
   }, [query, building, system, commodity]);
 
+  useEffect(() => {
+    if (!open) return;
+    const timer = setTimeout(() => {
+      handleSearch();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [query, building, system, commodity, open, handleSearch]);
+
   const toggleSelect = (code: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -113,7 +86,7 @@ export const TagSearchDialog: React.FC<TagSearchDialogProps> = ({ open, onClose,
           system: tag.System || '',
           uom: tag.UOM || '',
           commodity: tag.Commodity || '',
-          color: '', // auto-assigned by store
+          color: '',
           axisIndex: 0,
           axis: targetAxis || 'y',
         };
@@ -132,187 +105,111 @@ export const TagSearchDialog: React.FC<TagSearchDialogProps> = ({ open, onClose,
   const existingCodes = new Set(config.dataPoints.map((dp) => dp.code));
 
   return (
-    <Dialog
+    <Modal
+      title="Search Tags"
       open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{ sx: { borderRadius: 3, maxHeight: '80vh' } }}
+      onCancel={handleClose}
+      onOk={handleAdd}
+      okButtonProps={{ disabled: selected.size === 0 }}
+      okText={selected.size > 0 ? `Add ${selected.size} Tag${selected.size > 1 ? 's' : ''}` : 'Add Tags'}
+      width={600}
+      styles={{ body: { maxHeight: '60vh', overflowY: 'auto' } }}
     >
-      <DialogTitle
-        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}
-      >
-        <Typography variant="h6" fontWeight={600}>
-          Search Tags
-        </Typography>
-        <IconButton size="small" onClick={handleClose}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <Input
+        placeholder="Search by name or code..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        prefix={<SearchOutlined style={{ color: 'rgba(0,0,0,.25)' }} />}
+        suffix={loading ? <Spin size="small" /> : null}
+        style={{ marginBottom: 12 }}
+        autoFocus
+      />
 
-      <DialogContent sx={{ p: 2 }}>
-        {/* Search Bar */}
-        <TextField
-          placeholder="Search by name or code..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          fullWidth
+      <Flex align="center" gap="small" style={{ marginBottom: 12 }}>
+        <Button
           size="small"
-          autoFocus
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="action" />
-              </InputAdornment>
-            ),
-            endAdornment: loading ? (
-              <InputAdornment position="end">
-                <CircularProgress size={18} />
-              </InputAdornment>
-            ) : null,
-          }}
-          sx={{ mb: 1.5 }}
-        />
-
-        {/* Filter toggle */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Button
-            size="small"
-            startIcon={<FilterIcon />}
-            onClick={() => setShowFilters(!showFilters)}
-            variant={showFilters ? 'contained' : 'text'}
-            color="primary"
-          >
-            Filters
-          </Button>
-          <Typography variant="caption" color="text.secondary">
-            {total} tag{total !== 1 ? 's' : ''} found
-          </Typography>
-          {selected.size > 0 && (
-            <Chip
-              label={`${selected.size} selected`}
-              size="small"
-              color="primary"
-              onDelete={() => setSelected(new Set())}
-            />
-          )}
-        </Box>
-
-        {/* Filters */}
-        {showFilters && (
-          <Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
-            <TextField
-              select
-              label="Building"
-              value={building}
-              onChange={(e) => setBuilding(e.target.value)}
-              size="small"
-              sx={{ minWidth: 120 }}
-              disabled={!!config.buildingCode}
-              helperText={config.buildingCode ? 'Set by widget building' : undefined}
-            >
-              <MenuItem value="">All</MenuItem>
-              {filterOptions.buildings.map((b) => (
-                <MenuItem key={b} value={b}>
-                  {b}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              label="System"
-              value={system}
-              onChange={(e) => setSystem(e.target.value)}
-              size="small"
-              sx={{ minWidth: 120 }}
-            >
-              <MenuItem value="">All</MenuItem>
-              {filterOptions.systems.map((s) => (
-                <MenuItem key={s} value={s}>
-                  {s}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              label="Commodity"
-              value={commodity}
-              onChange={(e) => setCommodity(e.target.value)}
-              size="small"
-              sx={{ minWidth: 120 }}
-            >
-              <MenuItem value="">All</MenuItem>
-              {filterOptions.commodities.map((c) => (
-                <MenuItem key={c} value={c}>
-                  {c}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
+          icon={<FilterOutlined />}
+          onClick={() => setShowFilters(!showFilters)}
+          type={showFilters ? 'primary' : 'default'}
+        >
+          Filters
+        </Button>
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          {total} tag{total !== 1 ? 's' : ''} found
+        </Typography.Text>
+        {selected.size > 0 && (
+          <Tag color="blue" closable onClose={() => setSelected(new Set())}>
+            {selected.size} selected
+          </Tag>
         )}
+      </Flex>
 
-        {/* Results */}
-        <List dense sx={{ maxHeight: 320, overflow: 'auto' }}>
+      {showFilters && (
+        <Flex gap="small" style={{ marginBottom: 12 }}>
+          <Select
+            allowClear
+            placeholder="Building"
+            value={building || undefined}
+            onChange={setBuilding}
+            style={{ width: 120 }}
+            disabled={!!config.buildingCode}
+            options={filterOptions.buildings.map(b => ({ label: b, value: b }))}
+          />
+          <Select
+            allowClear
+            placeholder="System"
+            value={system || undefined}
+            onChange={setSystem}
+            style={{ width: 120 }}
+            options={filterOptions.systems.map(s => ({ label: s, value: s }))}
+          />
+          <Select
+            allowClear
+            placeholder="Commodity"
+            value={commodity || undefined}
+            onChange={setCommodity}
+            style={{ width: 120 }}
+            options={filterOptions.commodities.map(c => ({ label: c, value: c }))}
+          />
+        </Flex>
+      )}
+
+      {results.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(0,0,0,0.45)' }}>
+          {query || building || system || commodity ? 'No tags match your search' : 'Start typing to search tags'}
+        </div>
+      ) : (
+        <Flex vertical gap={4}>
           {results.map((tag) => {
             const alreadyAdded = existingCodes.has(tag.Code);
             const isSelected = selected.has(tag.Code);
             return (
-              <ListItemButton
+              <div
                 key={tag.Code}
                 onClick={() => !alreadyAdded && toggleSelect(tag.Code)}
-                disabled={alreadyAdded}
-                selected={isSelected}
-                sx={{ borderRadius: 1.5, mb: 0.5 }}
+                style={{
+                  cursor: alreadyAdded ? 'not-allowed' : 'pointer',
+                  backgroundColor: isSelected ? '#e6f4ff' : 'transparent',
+                  borderRadius: 6,
+                  padding: '8px 12px',
+                  border: 'none',
+                }}
               >
-                <Checkbox
-                  checked={isSelected || alreadyAdded}
-                  disabled={alreadyAdded}
-                  size="small"
-                  sx={{ mr: 1 }}
-                />
-                <ListItemText
-                  primary={
-                    <Typography variant="body2" fontWeight={500}>
-                      {tag.Name}
-                    </Typography>
-                  }
-                  secondary={
-                    <Typography variant="caption" color="text.secondary">
+                <Flex align="center" gap="small" style={{ width: '100%' }}>
+                  <Checkbox checked={isSelected || alreadyAdded} disabled={alreadyAdded} />
+                  <div style={{ flex: 1 }}>
+                    <Typography.Text strong>{tag.Name}</Typography.Text>
+                    <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>
                       {tag.Building} &middot; {tag.System} &middot; {tag.UOM} &middot; {tag.Commodity}
-                    </Typography>
-                  }
-                />
-                {alreadyAdded && (
-                  <Chip label="Added" size="small" variant="outlined" color="success" />
-                )}
-              </ListItemButton>
+                    </div>
+                  </div>
+                  {alreadyAdded && <Tag color="success">Added</Tag>}
+                </Flex>
+              </div>
             );
           })}
-
-          {!loading && results.length === 0 && (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.disabled">
-                {query || building || system || commodity
-                  ? 'No tags match your search'
-                  : 'Start typing to search tags'}
-              </Typography>
-            </Box>
-          )}
-        </List>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 2, pb: 2 }}>
-        <Button onClick={handleClose} color="inherit">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleAdd}
-          variant="contained"
-          disabled={selected.size === 0}
-        >
-          Add {selected.size > 0 ? `${selected.size} Tag${selected.size > 1 ? 's' : ''}` : 'Tags'}
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </Flex>
+      )}
+    </Modal>
   );
 };

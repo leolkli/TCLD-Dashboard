@@ -1,17 +1,5 @@
 import React from 'react';
-import {
-  TextField,
-  MenuItem,
-  Stack,
-  Box,
-  Typography,
-  Slider,
-  FormControlLabel,
-  Switch,
-  ToggleButtonGroup,
-  ToggleButton,
-} from '@mui/material';
-import Collapse from '@mui/material/Collapse';
+import { Flex, Select, Typography, Slider, Switch, Radio } from 'antd';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 import type { BarLayout, PieLayout } from '@/types/widget';
 
@@ -28,173 +16,121 @@ export const GeneralSettings: React.FC = () => {
   const { general, chart } = config;
 
   return (
-    <Stack spacing={3}>
-      <Box>
-        <Typography variant="subtitle2" sx={{ mb: 2, color: 'primary.main', borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>Data Freshness</Typography>
-        <TextField
-          select
-          label="Auto Refresh"
+    <Flex vertical gap="large">
+      <div>
+        <Typography.Title level={5} style={{ color: '#1677ff', borderBottom: '1px solid #f0f0f0', paddingBottom: 8, marginTop: 0 }}>
+          Data Freshness
+        </Typography.Title>
+        <Select
+          style={{ width: '100%' }}
           value={general.refreshInterval}
-          onChange={(e) => updateGeneral({ refreshInterval: Number(e.target.value) })}
-          fullWidth
-          size="small"
-        >
-          {refreshOptions.map((ri) => (
-            <MenuItem key={ri.value} value={ri.value}>
-              {ri.label}
-            </MenuItem>
-          ))}
-        </TextField>
-      </Box>
+          onChange={(val) => updateGeneral({ refreshInterval: val })}
+          options={refreshOptions}
+        />
+      </div>
 
-      <Box>
-        <Typography variant="subtitle2" sx={{ mb: 2, color: 'primary.main', borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>Chart Specific Styling</Typography>
+      <div>
+        <Typography.Title level={5} style={{ color: '#1677ff', borderBottom: '1px solid #f0f0f0', paddingBottom: 8, marginTop: 0 }}>
+          Chart Specific Styling
+        </Typography.Title>
         
-        {/* Line Width (for line/area) */}
-        <Collapse in={chart.type === 'line' || chart.type === 'area'}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              Line Width: {chart.lineWidth}px
-            </Typography>
+        {(chart.type === 'line' || chart.type === 'area') && (
+          <div style={{ marginBottom: 16 }}>
+            <Typography.Text type="secondary">Line Width: {chart.lineWidth}px</Typography.Text>
             <Slider
               value={chart.lineWidth}
-              onChange={(_, val) => updateChart({ lineWidth: val as number })}
+              onChange={(val) => updateChart({ lineWidth: val })}
               min={1}
               max={5}
               step={0.5}
-              valueLabelDisplay="auto"
             />
-          </Box>
-        </Collapse>
+          </div>
+        )}
 
-        {/* Fill Opacity (for area) */}
-        <Collapse in={chart.type === 'area'}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary">
-              Fill Opacity: {chart.fillOpacity}%
-            </Typography>
+        {chart.type === 'area' && (
+          <div style={{ marginBottom: 16 }}>
+            <Typography.Text type="secondary">Fill Opacity: {chart.fillOpacity}%</Typography.Text>
             <Slider
               value={chart.fillOpacity}
-              onChange={(_, val) => updateChart({ fillOpacity: val as number })}
+              onChange={(val) => updateChart({ fillOpacity: val })}
               min={0}
               max={100}
-              valueLabelDisplay="auto"
             />
-          </Box>
-        </Collapse>
+          </div>
+        )}
 
-        {/* Bar Layout */}
-        <Collapse in={chart.type === 'bar'}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-              Bar Layout
-            </Typography>
-            <ToggleButtonGroup
+        {chart.type === 'bar' && (
+          <div style={{ marginBottom: 16 }}>
+            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Bar Layout</Typography.Text>
+            <Radio.Group
               value={chart.barLayout || 'grouped'}
-              exclusive
-              onChange={(_, val) => val && updateChart({ barLayout: val as BarLayout })}
-              size="small"
-              fullWidth
+              onChange={(e) => updateChart({ barLayout: e.target.value as BarLayout })}
+              buttonStyle="solid"
             >
-              <ToggleButton value="grouped">Grouped</ToggleButton>
-              <ToggleButton value="stacked">Stacked</ToggleButton>
-              <ToggleButton value="horizontal">Horizontal</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-        </Collapse>
+              <Radio.Button value="grouped">Grouped</Radio.Button>
+              <Radio.Button value="stacked">Stacked</Radio.Button>
+              <Radio.Button value="horizontal">Horizontal</Radio.Button>
+            </Radio.Group>
+          </div>
+        )}
 
-        {/* Pie Layout */}
-        <Collapse in={chart.type === 'pie'}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-              Pie Style
-            </Typography>
-            <ToggleButtonGroup
+        {chart.type === 'pie' && (
+          <div style={{ marginBottom: 16 }}>
+            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Pie Style</Typography.Text>
+            <Radio.Group
               value={chart.pieLayout || 'standard'}
-              exclusive
-              onChange={(_, val) => val && updateChart({ pieLayout: val as PieLayout })}
-              size="small"
-              fullWidth
+              onChange={(e) => updateChart({ pieLayout: e.target.value as PieLayout })}
+              buttonStyle="solid"
             >
-              <ToggleButton value="standard">Standard</ToggleButton>
-              <ToggleButton value="donut">Donut</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-        </Collapse>
+              <Radio.Button value="standard">Standard</Radio.Button>
+              <Radio.Button value="donut">Donut</Radio.Button>
+            </Radio.Group>
+          </div>
+        )}
 
-        {/* Scatter Specifics */}
-        <Collapse in={chart.type === 'scatter'}>
-          <Stack spacing={2} sx={{ mb: 2 }}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Min Point Size: {chart.scatterPointMinSize || 4}px
-              </Typography>
+        {chart.type === 'scatter' && (
+          <Flex vertical gap="middle" style={{ marginBottom: 16 }}>
+            <div>
+              <Typography.Text type="secondary">Min Point Size: {chart.scatterPointMinSize || 4}px</Typography.Text>
               <Slider
                 value={chart.scatterPointMinSize || 4}
-                onChange={(_, val) => updateChart({ scatterPointMinSize: val as number })}
+                onChange={(val) => updateChart({ scatterPointMinSize: val })}
                 min={2}
                 max={20}
-                valueLabelDisplay="auto"
               />
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Max Point Size: {chart.scatterPointMaxSize || 20}px
-              </Typography>
+            </div>
+            <div>
+              <Typography.Text type="secondary">Max Point Size: {chart.scatterPointMaxSize || 20}px</Typography.Text>
               <Slider
                 value={chart.scatterPointMaxSize || 20}
-                onChange={(_, val) => updateChart({ scatterPointMaxSize: val as number })}
+                onChange={(val) => updateChart({ scatterPointMaxSize: val })}
                 min={10}
                 max={50}
-                valueLabelDisplay="auto"
               />
-            </Box>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={!!chart.showTrendline}
-                  onChange={(_, v) => updateChart({ showTrendline: v })}
-                  color="primary"
-                  size="small"
-                />
-              }
-              label="Show Trendline"
-            />
-          </Stack>
-        </Collapse>
+            </div>
+            <div>
+              <Switch checked={!!chart.showTrendline} onChange={(val) => updateChart({ showTrendline: val })} />
+              <span style={{ marginLeft: 8 }}>Show Trendline</span>
+            </div>
+          </Flex>
+        )}
+      </div>
 
-      </Box>
-
-      <Box>
-        <Typography variant="subtitle2" sx={{ mb: 2, color: 'primary.main', borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>Universal Visuals</Typography>
-        <Stack spacing={1}>
-          {/* Grid Lines */}
-          <FormControlLabel
-            control={
-              <Switch
-                checked={chart.showGridLines}
-                onChange={(_, v) => updateChart({ showGridLines: v })}
-                color="primary"
-                size="small"
-              />
-            }
-            label="Show Grid Lines"
-          />
-
-          {/* Annotations */}
-          <FormControlLabel
-            control={
-              <Switch
-                checked={!!chart.showDataLabels}
-                onChange={(_, v) => updateChart({ showDataLabels: v })}
-                color="primary"
-                size="small"
-              />
-            }
-            label="Show Data Labels"
-          />
-        </Stack>
-      </Box>
-    </Stack>
+      <div>
+        <Typography.Title level={5} style={{ color: '#1677ff', borderBottom: '1px solid #f0f0f0', paddingBottom: 8, marginTop: 0 }}>
+          Universal Visuals
+        </Typography.Title>
+        <Flex vertical gap="small">
+          <div>
+            <Switch checked={chart.showGridLines} onChange={(val) => updateChart({ showGridLines: val })} />
+            <span style={{ marginLeft: 8 }}>Show Grid Lines</span>
+          </div>
+          <div>
+            <Switch checked={!!chart.showDataLabels} onChange={(val) => updateChart({ showDataLabels: val })} />
+            <span style={{ marginLeft: 8 }}>Show Data Labels</span>
+          </div>
+        </Flex>
+      </div>
+    </Flex>
   );
 };

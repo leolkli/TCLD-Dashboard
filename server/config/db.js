@@ -9,7 +9,8 @@ const config = {
         encrypt: true,
         trustServerCertificate: false,
         enableArithAbort: true,
-        connectTimeout: 30000 
+        connectTimeout: 30000,
+        requestTimeout: 60000
     }
 };
 

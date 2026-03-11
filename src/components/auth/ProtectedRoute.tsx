@@ -1,6 +1,8 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Spin, Typography } from 'antd';
+
+const { Text } = Typography;
 
 /**
  * Protected Route Component
@@ -13,21 +15,21 @@ export const ProtectedRoute: React.FC = () => {
   // Show loading while authenticating
   if (isLoading) {
     return (
-      <Box
-        sx={{
+      <div
+        style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           height: '100vh',
-          gap: 2,
+          gap: 16,
         }}
       >
-        <CircularProgress size={48} />
-        <Typography variant="body1" color="text.secondary">
+        <Spin size="large" />
+        <Text type="secondary">
           Authenticating...
-        </Typography>
-      </Box>
+        </Text>
+      </div>
     );
   }
 

@@ -1,48 +1,30 @@
-/**
- * Dashboard Configuration Page
- *
- * Allows users to:
- *  1. Choose scope: portfolio-main, building-main, building-sub
- *  2. Select the target portfolio or building
- *  3. Name the dashboard
- *  4. Drag widgets from a library panel onto a react-grid-layout canvas
- *  5. Resize / rearrange widgets
- *  6. Save the dashboard
- */
-
 import React, { useEffect, useState, useCallback } from 'react';
-import { Responsive, WidthProvider } from 'react-grid-layout';
+import { useNavigate } from 'react-router-dom';
+import { WidthProvider } from 'react-grid-layout'; // fallback if normal doesn't work
+import ResponsiveGridLayoutImport from 'react-grid-layout'; // Need to be careful with RGL exports
 import type { Layout } from 'react-grid-layout';
 import {
-  Box,
   Typography,
-  Paper,
+  Flex,
   Button,
-  TextField,
-  MenuItem,
-  Stack,
-  Chip,
-  IconButton,
+  Input,
+  Select,
+  Tag,
   Tooltip,
   Alert,
-  Divider,
-  List,
-  ListItemButton,
-  ListItemText,
-  ListItemIcon,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-} from '@mui/material';
+  Modal,
+  Card,
+  Row,
+  Col
+} from 'antd';
 import {
-  Save as SaveIcon,
-  Delete as DeleteIcon,
-  Add as AddIcon,
-  ShowChart as WidgetIcon,
-  Dashboard as DashboardIcon,
-} from '@mui/icons-material';
+  SaveOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  LineChartOutlined,
+  DashboardOutlined,
+  ExclamationCircleOutlined
+} from '@ant-design/icons';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { createEmptyDashboard } from '@/types/dashboard';
 import type { Dashboard, DashboardScope } from '@/types/dashboard';
@@ -52,7 +34,10 @@ import { synapseService } from '@/services/synapseService';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-const ResponsiveGridLayout = WidthProvider(Responsive);
+// Fix for width provider
+const ResponsiveGridLayout = WidthProvider(ResponsiveGridLayoutImport.Responsive || ResponsiveGridLayoutImport);
+
+const { Title, Text } = Typography;
 
 const scopeOptions: { value: DashboardScope; label: string }[] = [
   { value: 'portfolio-main', label: 'Portfolio Main Dashboard' },
@@ -61,7 +46,7 @@ const scopeOptions: { value: DashboardScope; label: string }[] = [
 ];
 
 export const DashboardTemplatesPage: React.FC = () => {
-  // ── Stores ───────────────────────────────────────────────────
+  const navigate = useNavigate();
   const {
     currentDashboard,
     savedWidgets,
@@ -78,7 +63,6 @@ export const DashboardTemplatesPage: React.FC = () => {
     deleteWidget,
   } = useDashboardStore();
 
-  // ── Local state ──────────────────────────────────────────────
   const [scope, setScope] = useState<DashboardScope>('building-main');
   const [portfolios, setPortfolios] = useState<SynapsePortfolio[]>([]);
   const [buildingsList, setBuildingsList] = useState<{ code: string; name: string }[]>([]);
@@ -86,17 +70,14 @@ export const DashboardTemplatesPage: React.FC = () => {
   const [selectedBuilding, setSelectedBuilding] = useState('');
   const [dashboardName, setDashboardName] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
-  // Delete confirmation dialog state
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'dashboard' | 'widget'; id: string; name: string } | null>(null);
+  
+  const [modal, contextHolder] = Modal.useModal();
 
-  // ── Init: load hierarchy + existing dashboards + widgets ─────
   useEffect(() => {
     const init = async () => {
       try {
         const hierarchy = await synapseService.getHierarchy();
         setPortfolios(hierarchy);
-        // Flatten buildings
         const allBuildings: { code: string; name: string }[] = [];
         hierarchy.forEach((p) =>
           p.buildings.forEach((b) => {
@@ -116,7 +97,6 @@ export const DashboardTemplatesPage: React.FC = () => {
     init();
   }, [fetchAllDashboards, fetchSavedWidgets]);
 
-  // ── When scope / target changes, try to load existing dashboard ─
   useEffect(() => {
     let match: Dashboard | undefined;
     if (scope === 'portfolio-main' && selectedPortfolio) {
@@ -133,18 +113,15 @@ export const DashboardTemplatesPage: React.FC = () => {
       setCurrentDashboard(match);
       setDashboardName(match.name);
     } else if (scope !== 'building-sub') {
-      // Start fresh
       setCurrentDashboard(null);
       setDashboardName('');
     }
   }, [scope, selectedPortfolio, selectedBuilding, dashboards, setCurrentDashboard]);
 
-  // Filter existing sub-dashboards for selected building
   const existingSubDashboards = dashboards.filter(
     (d) => d.scope === 'building-sub' && d.buildingCode === selectedBuilding,
   );
 
-  // ── Handlers ─────────────────────────────────────────────────
   const handleNewDashboard = useCallback(() => {
     const buildingName = buildingsList.find((b) => b.code === selectedBuilding)?.name;
     const dash = createEmptyDashboard(scope, {
@@ -191,423 +168,306 @@ export const DashboardTemplatesPage: React.FC = () => {
     [setCurrentDashboard],
   );
 
-  // ── Delete confirmation helpers ──────────────────────────────
-  const handleDeleteRequest = useCallback((type: 'dashboard' | 'widget', id: string, name: string) => {
-    setDeleteTarget({ type, id, name });
-    setDeleteDialogOpen(true);
-  }, []);
+  const showDeleteConfirm = useCallback((type: 'dashboard' | 'widget', id: string, name: string) => {
+    modal.confirm({
+      title: `Delete ${type === 'dashboard' ? 'Dashboard' : 'Widget'}`,
+      icon: <ExclamationCircleOutlined />,
+      content: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        if (type === 'dashboard') {
+          await deleteDashboard(id);
+        } else {
+          await deleteWidget(id);
+        }
+      },
+    });
+  }, [deleteDashboard, deleteWidget, modal]);
 
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!deleteTarget) return;
-    if (deleteTarget.type === 'dashboard') {
-      await deleteDashboard(deleteTarget.id);
-    } else {
-      await deleteWidget(deleteTarget.id);
-    }
-    setDeleteDialogOpen(false);
-    setDeleteTarget(null);
-  }, [deleteTarget, deleteDashboard, deleteWidget]);
-
-  const handleDeleteCancel = useCallback(() => {
-    setDeleteDialogOpen(false);
-    setDeleteTarget(null);
-  }, []);
-
-  // ── Layout data for react-grid-layout ────────────────────────
   const layouts = {
     lg: currentDashboard?.layout || [],
   };
 
   return (
-    <Box sx={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', p: 0 }}>
-      {/* Top Bar */}
-      <Box
-        sx={{
-          px: 3,
-          py: 1.5,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
-        }}
-      >
-        <Box>
-          <Typography variant="h5" fontWeight={700}>
-            Dashboard Configuration
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Create and edit dashboards — drag widgets onto the canvas
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1} alignItems="center">
-          {saveSuccess && (
-            <Chip label="Saved!" color="success" size="small" variant="outlined" />
-          )}
-          {currentDashboard && (
-            <Tooltip title="Delete this dashboard">
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                startIcon={<DeleteIcon />}
-                onClick={() =>
-                  handleDeleteRequest('dashboard', currentDashboard.id, currentDashboard.name)
-                }
-              >
-                Delete
-              </Button>
-            </Tooltip>
-          )}
+    <div style={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', padding: 24 }}>
+      {contextHolder}
+      
+      {/* Top Header Row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>Dashboard Configurator</Title>
+          <Text type="secondary">Build and manage dashboard blueprints.</Text>
+        </div>
+        <Flex gap="small" align="center">
+          {saveSuccess && <Alert message="Dashboard Saved" type="success" showIcon />}
           <Button
-            variant="contained"
-            color="success"
-            size="small"
-            startIcon={<SaveIcon />}
+            type="primary"
+            icon={<SaveOutlined />}
             onClick={handleSave}
-            disabled={!currentDashboard || isLoading}
+            loading={isLoading}
+            disabled={!currentDashboard}
           >
-            Save Dashboard
+            Save Layout
           </Button>
-        </Stack>
-      </Box>
-
-      {/* Main Split */}
-      <Box sx={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
-        {/* ─── Left Panel: Settings + Widget Library (30%) ────── */}
-        <Box
-          sx={{
-            flex: '0 0 300px',
-            width: 300,
-            overflow: 'auto',
-            borderRight: '1px solid',
-            borderColor: 'divider',
-            bgcolor: 'grey.50',
-            p: 2,
-          }}
-        >
-          {/* Scope & Target selectors */}
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-            Dashboard Settings
-          </Typography>
-
-          <Stack spacing={1.5} sx={{ mb: 2 }}>
-            <TextField
-              select
-              label="Scope"
-              value={scope}
-              onChange={(e) => {
-                setScope(e.target.value as DashboardScope);
-                setCurrentDashboard(null);
-                setDashboardName('');
-              }}
-              size="small"
-              fullWidth
+          {currentDashboard && currentDashboard.id && (
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => showDeleteConfirm('dashboard', currentDashboard.id, currentDashboard.name)}
             >
-              {scopeOptions.map((o) => (
-                <MenuItem key={o.value} value={o.value}>
-                  {o.label}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            {scope === 'portfolio-main' && (
-              <TextField
-                select
-                label="Portfolio"
-                value={selectedPortfolio}
-                onChange={(e) => setSelectedPortfolio(e.target.value)}
-                size="small"
-                fullWidth
-              >
-                <MenuItem value="">Select portfolio…</MenuItem>
-                {portfolios.map((p) => (
-                  <MenuItem key={p.name} value={p.name}>
-                    {p.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-
-            {scope !== 'portfolio-main' && (
-              <TextField
-                select
-                label="Building"
-                value={selectedBuilding}
-                onChange={(e) => setSelectedBuilding(e.target.value)}
-                size="small"
-                fullWidth
-              >
-                <MenuItem value="">Select building…</MenuItem>
-                {buildingsList.map((b) => (
-                  <MenuItem key={b.code} value={b.code}>
-                    {b.name} ({b.code})
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-
-            <TextField
-              label="Dashboard Name"
-              value={dashboardName}
-              onChange={(e) => setDashboardName(e.target.value)}
-              size="small"
-              fullWidth
-            />
-
-            {!currentDashboard && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={handleNewDashboard}
-                disabled={
-                  (scope === 'portfolio-main' && !selectedPortfolio) ||
-                  (scope !== 'portfolio-main' && !selectedBuilding)
-                }
-              >
-                New Dashboard
-              </Button>
-            )}
-          </Stack>
-
-          {/* Existing sub-dashboards for quick load */}
-          {scope === 'building-sub' && selectedBuilding && existingSubDashboards.length > 0 && (
-            <>
-              <Divider sx={{ my: 1.5 }} />
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                Existing Sub-Dashboards
-              </Typography>
-              <List dense>
-                {existingSubDashboards.map((d) => (
-                  <ListItemButton
-                    key={d.id}
-                    selected={currentDashboard?.id === d.id}
-                    onClick={() => handleLoadSubDashboard(d)}
-                    sx={{ borderRadius: 1.5, mb: 0.5 }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 32 }}>
-                      <DashboardIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={d.name}
-                      primaryTypographyProps={{ variant: 'body2' }}
-                    />
-                    <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteRequest('dashboard', d.id, d.name);
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </ListItemButton>
-                ))}
-              </List>
-            </>
+              Delete Dashboard
+            </Button>
           )}
+        </Flex>
+      </div>
 
-          <Divider sx={{ my: 1.5 }} />
-
-          {/* Widget Library */}
-          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-            Widget Library
-          </Typography>
-          {savedWidgets.length === 0 ? (
-            <Typography variant="caption" color="text.disabled">
-              No saved widgets. Create widgets in the Widget Configurator first.
-            </Typography>
-          ) : (
-            <List dense>
-              {savedWidgets.map((w) => (
-                <ListItemButton
-                  key={w.id}
-                  onClick={() => {
-                    if (!currentDashboard) return;
-                    addWidgetToDashboard(w.id!, w.name);
+      <Row gutter={[24, 24]} style={{ flex: 1, minHeight: 0 }}>
+        {/* LEFT COLUMN: Controls & Library */}
+        <Col xs={24} md={6} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Scope Selection Card */}
+          <Card 
+            title="Dashboard Context" 
+            variant="borderless" 
+            className="shadow-sm" 
+            style={{ marginBottom: 24 }}
+          >
+            <Flex vertical style={{ width: '100%' }} gap={16}>
+              <div>
+                <Text strong style={{ display: 'block', marginBottom: 4 }}>Scope Level</Text>
+                <Select
+                  style={{ width: '100%' }}
+                  value={scope}
+                  onChange={(val) => {
+                    setScope(val);
+                    setSelectedPortfolio('');
+                    setSelectedBuilding('');
+                    setDashboardName('');
+                    setCurrentDashboard(null);
                   }}
-                  disabled={!currentDashboard}
-                  sx={{ borderRadius: 1.5, mb: 0.5 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    <WidgetIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={w.name}
-                    secondary={`${w.portfolioName || w.buildingName || 'No scope'} · ${w.chart.type}`}
-                    primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
-                    secondaryTypographyProps={{ variant: 'caption' }}
+                  options={scopeOptions}
+                />
+              </div>
+
+              {scope === 'portfolio-main' && (
+                <div>
+                  <Text strong style={{ display: 'block', marginBottom: 4 }}>Portfolio Target</Text>
+                  <Select
+                    style={{ width: '100%' }}
+                    value={selectedPortfolio}
+                    onChange={(val) => setSelectedPortfolio(val)}
+                    placeholder="Select Portfolio"
+                    options={portfolios.map(p => ({ label: p.name, value: p.name }))}
                   />
-                  <Stack direction="row" spacing={0} alignItems="center">
-                    <Tooltip title="Add to dashboard">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!currentDashboard) return;
-                          addWidgetToDashboard(w.id!, w.name);
-                        }}
-                        disabled={!currentDashboard}
-                      >
-                        <AddIcon fontSize="small" color="primary" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete widget">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteRequest('widget', w.id!, w.name);
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" color="error" />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                </ListItemButton>
-              ))}
-            </List>
-          )}
-        </Box>
+                </div>
+              )}
 
-        {/* ─── Right Panel: Canvas (remaining width) ────────── */}
-        <Box sx={{ flex: 1, overflow: 'auto', p: 2, bgcolor: 'background.default' }}>
-          {!currentDashboard ? (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-              }}
-            >
-              <Alert severity="info" sx={{ maxWidth: 500 }}>
-                Select a scope and target, then click <strong>New Dashboard</strong> — or
-                load an existing sub-dashboard from the left panel.
-              </Alert>
-            </Box>
-          ) : currentDashboard.widgets.length === 0 ? (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-              }}
-            >
-              <Alert severity="info" sx={{ maxWidth: 500 }}>
-                Click widgets from the <strong>Widget Library</strong> on the left to add
-                them to the canvas.
-              </Alert>
-            </Box>
-          ) : (
-            <ResponsiveGridLayout
-              className="layout"
-              layouts={layouts}
-              breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-              cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-              rowHeight={80}
-              isDraggable
-              isResizable
-              onLayoutChange={handleLayoutChange}
-              compactType="vertical"
-              draggableHandle=".widget-drag-handle"
-            >
-              {currentDashboard.widgets.map((wi) => {
-                const widgetConfig = savedWidgets.find((w) => w.id === wi.widgetId);
-                return (
-                  <Paper
-                    key={wi.layoutId}
-                    elevation={0}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 3,
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      height: '100%',
+              {scope !== 'portfolio-main' && (
+                <div>
+                  <Text strong style={{ display: 'block', marginBottom: 4 }}>Building Target</Text>
+                  <Select
+                    style={{ width: '100%' }}
+                    value={selectedBuilding}
+                    onChange={(val) => {
+                      setSelectedBuilding(val);
+                      if (scope === 'building-sub') {
+                        setCurrentDashboard(null);
+                        setDashboardName('');
+                      }
                     }}
-                  >
-                    {/* Drag handle + delete */}
-                    <Box
-                      className="widget-drag-handle"
-                      sx={{
-                        px: 1.5,
-                        py: 0.5,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        borderBottom: '1px solid',
-                        borderColor: 'divider',
-                        bgcolor: 'grey.50',
-                        cursor: 'grab',
-                        '&:active': { cursor: 'grabbing' },
-                      }}
-                    >
-                      <Typography variant="caption" fontWeight={600} noWrap>
-                        {widgetConfig?.general.title || wi.widgetName}
-                      </Typography>
-                      <Tooltip title="Remove from dashboard">
-                        <IconButton
-                          size="small"
-                          onClick={() => removeWidgetFromDashboard(wi.layoutId)}
-                        >
-                          <DeleteIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                    {/* Chart placeholder */}
-                    <Box
-                      sx={{
-                        flex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minHeight: 0,
-                        bgcolor: 'background.paper',
-                        color: 'text.secondary',
-                      }}
-                    >
-                      <Stack alignItems="center" spacing={0.5}>
-                        <WidgetIcon sx={{ fontSize: 28, opacity: 0.4 }} />
-                        <Typography variant="caption">
-                          {widgetConfig?.chart.type || 'chart'} — {widgetConfig?.dataPoints.length || 0} tags
-                        </Typography>
-                      </Stack>
-                    </Box>
-                  </Paper>
-                );
-              })}
-            </ResponsiveGridLayout>
-          )}
-        </Box>
-      </Box>
+                    placeholder="Select Building"
+                    options={buildingsList.map(b => ({ label: `${b.name} (${b.code})`, value: b.code }))}
+                  />
+                </div>
+              )}
 
-      {/* ── Delete Confirmation Dialog ──────────────────────── */}
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="xs" fullWidth>
-        <DialogTitle>
-          Confirm Delete
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete the {deleteTarget?.type}{' '}
-            <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel} color="inherit">
-            Cancel
-          </Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+              {scope === 'building-sub' && selectedBuilding && (
+                <div style={{ marginTop: 12 }}>
+                  <Text strong style={{ display: 'block', marginBottom: 8 }}>Sub-Dashboards</Text>
+                    <div style={{ border: '1px solid #d9d9d9', borderRadius: 8, padding: 8 }}>
+                      <Flex vertical gap={4}>
+                        {existingSubDashboards.map(item => (
+                          <div
+                            key={item.id}
+                            style={{ 
+                              padding: '8px 12px', 
+                              cursor: 'pointer', 
+                              borderRadius: 4,
+                              backgroundColor: currentDashboard?.id === item.id ? '#e6f4ff' : 'transparent',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8
+                            }}
+                            onClick={() => handleLoadSubDashboard(item)}
+                          >
+                            <DashboardOutlined />
+                            <Text>{item.name}</Text>
+                          </div>
+                        ))}
+                      </Flex>
+                      <div style={{ textAlign: 'center', marginTop: 8 }}>
+                        <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={handleNewDashboard}>
+                          Create New Sub-Dashboard
+                        </Button>
+                      </div>
+                    </div>
+                </div>
+              )}
+
+              {((scope === 'building-sub' && currentDashboard) || (scope !== 'building-sub')) && (
+                <div>
+                  <Text strong style={{ display: 'block', marginBottom: 4 }}>Dashboard Name</Text>
+                  <Input
+                    value={dashboardName}
+                    onChange={(e) => setDashboardName(e.target.value)}
+                    placeholder="e.g. Overview"
+                  />
+                </div>
+              )}
+
+              {scope !== 'building-sub' && !currentDashboard && (selectedPortfolio || selectedBuilding) && (
+                <Button type="dashed" block icon={<PlusOutlined />} onClick={handleNewDashboard} style={{ marginTop: 8 }}>
+                  Initialize Dashboard Canvas
+                </Button>
+              )}
+            </Flex>
+          </Card>
+
+          {/* Widget Library Card */}
+          <Card
+            title="Widget Library"
+            extra={
+              <Button type="link" onClick={() => navigate('/admin/widget-configurator')} style={{ padding: 0 }}>
+                Manage Widgets
+              </Button>
+            }
+            variant="borderless"
+            className="shadow-sm"
+            style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+            styles={{ body: { flex: 1, overflowY: 'auto' } }}
+          >
+            {savedWidgets.length === 0 ? (
+              <Text type="secondary">No saved widgets available. Create widgets in the Widget Configurator.</Text>
+            ) : (
+              <Flex vertical gap={8}>
+                {savedWidgets.map((widget) => {
+                  const isInLayout = currentDashboard?.layout.some((l) => l.i === widget.id);
+                  return (
+                    <Flex
+                      key={widget.id}
+                      align="center"
+                      justify="space-between"
+                      style={{ borderBottom: '1px solid #f0f0f0', padding: '12px 0' }}
+                    >
+                      <Flex align="center" gap={12}>
+                        <LineChartOutlined style={{ fontSize: 24, color: '#1677ff' }} />
+                        <div>
+                          <Text strong style={{ display: 'block' }}>{widget.name}</Text>
+                          <Tag color="blue">{widget.chart.type}</Tag>
+                        </div>
+                      </Flex>
+                      <Flex gap={8}>
+                        <Tooltip title={isInLayout ? "Already added" : "Add to Default Layout"} key="add">
+                          <Button
+                            type="primary"
+                            size="small"
+                            disabled={isInLayout || !currentDashboard || !widget.id}
+                            onClick={() => addWidgetToDashboard(widget.id!, widget.name)}
+                            icon={<PlusOutlined />}
+                          />
+                        </Tooltip>
+                        <Tooltip title="Delete Widget" key="del">
+                          <Button
+                            type="text"
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            onClick={() => showDeleteConfirm('widget', widget.id!, widget.name)}
+                          />
+                        </Tooltip>
+                      </Flex>
+                    </Flex>
+                  );
+                })}
+              </Flex>
+            )}
+          </Card>
+        </Col>
+
+        {/* RIGHT COLUMN: Canvas */}
+        <Col xs={24} md={18} style={{ height: '100%' }}>
+          <Card 
+            variant="borderless" 
+            className="shadow-sm" 
+            style={{ height: '100%', backgroundColor: '#f5f5f5', overflowY: 'auto' }}
+            styles={{ body: { padding: 12 } }}
+          >
+            {!currentDashboard ? (
+              <div style={{ display: 'flex', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                <Text type="secondary" style={{ fontSize: 16 }}>Select context and initialize dashboard to start arranging widgets.</Text>
+              </div>
+            ) : currentDashboard.layout.length === 0 ? (
+              <div style={{ display: 'flex', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                <Text type="secondary" style={{ fontSize: 16 }}>Dashboard is empty. Add widgets from the left panel.</Text>
+              </div>
+            ) : (
+              <div style={{ minHeight: 600 }}>
+                <ResponsiveGridLayout
+                  className="layout"
+                  layouts={layouts}
+                  breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                  cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+                  rowHeight={30}
+                  onLayoutChange={handleLayoutChange}
+                  draggableHandle=".drag-handle"
+                >
+                  {currentDashboard.layout.map((item) => {
+                    const widgetInfo = savedWidgets.find((w) => w.id === item.i);
+                    return (
+                      <div key={item.i} style={{ border: '1px solid #d9d9d9', backgroundColor: 'white', borderRadius: 8, display: 'flex', flexDirection: 'column' }}>
+                        <div
+                          className="drag-handle"
+                          style={{
+                            padding: '8px 12px',
+                            backgroundColor: '#fafafa',
+                            borderBottom: '1px solid #f0f0f0',
+                            borderTopLeftRadius: 8,
+                            borderTopRightRadius: 8,
+                            cursor: 'move',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Text strong ellipsis style={{ width: '80%' }}>
+                            {widgetInfo?.name || item.i}
+                          </Text>
+                          <Button 
+                            type="text" 
+                            danger 
+                            size="small" 
+                            icon={<DeleteOutlined />} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeWidgetFromDashboard(item.i);
+                            }} 
+                          />
+                        </div>
+                        <div style={{ flex: 1, padding: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#fafafa' }}>
+                          <Text type="secondary" style={{ fontSize: 24, opacity: 0.3 }}>
+                            [ Echarts View ]
+                          </Text>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </ResponsiveGridLayout>
+              </div>
+            )}
+          </Card>
+        </Col>
+      </Row>
+    </div>
   );
 };

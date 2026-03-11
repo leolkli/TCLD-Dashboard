@@ -1,15 +1,5 @@
 import React from 'react';
-import {
-  Stack,
-  FormControlLabel,
-  Switch,
-  ToggleButtonGroup,
-  ToggleButton,
-  Typography,
-  TextField,
-  Box,
-  Slider,
-} from '@mui/material';
+import { Flex, Switch, Radio, Typography, InputNumber, Slider } from 'antd';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 import type { ScaleType } from '@/types/widget';
 
@@ -18,129 +8,102 @@ export const ScaleSettings: React.FC = () => {
   const { scales } = config;
 
   return (
-    <Stack spacing={2}>
-      {/* Scale Type */}
-      <Box>
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+    <Flex vertical gap="middle">
+      <div>
+        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: 12 }}>
           Scale Type
-        </Typography>
-        <ToggleButtonGroup
+        </Typography.Text>
+        <Radio.Group
           value={scales.scaleType}
-          exclusive
-          onChange={(_, val) => val && updateScales({ scaleType: val as ScaleType })}
-          size="small"
+          onChange={(e) => updateScales({ scaleType: e.target.value as ScaleType })}
         >
-          <ToggleButton value="linear" sx={{ px: 2 }}>Linear</ToggleButton>
-          <ToggleButton value="log" sx={{ px: 2 }}>Logarithmic</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+          <Radio.Button value="linear">Linear</Radio.Button>
+          <Radio.Button value="log">Logarithmic</Radio.Button>
+        </Radio.Group>
+      </div>
 
-      {/* Y-Axis Mode */}
-      <Box>
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+      <div>
+        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: 12 }}>
           Y-Axis Range
-        </Typography>
-        <ToggleButtonGroup
+        </Typography.Text>
+        <Radio.Group
           value={scales.yAxisMode}
-          exclusive
-          onChange={(_, val) => val && updateScales({ yAxisMode: val })}
-          size="small"
+          onChange={(e) => updateScales({ yAxisMode: e.target.value })}
         >
-          <ToggleButton value="auto" sx={{ px: 2 }}>Auto</ToggleButton>
-          <ToggleButton value="manual" sx={{ px: 2 }}>Manual</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+          <Radio.Button value="auto">Auto</Radio.Button>
+          <Radio.Button value="manual">Manual</Radio.Button>
+        </Radio.Group>
+      </div>
 
       {scales.yAxisMode === 'manual' && (
-        <Stack direction="row" spacing={1.5}>
-          <TextField
-            label="Y Min"
-            type="number"
-            value={scales.yMin ?? ''}
-            onChange={(e) => updateScales({ yMin: e.target.value ? Number(e.target.value) : undefined })}
-            size="small"
-            fullWidth
+        <Flex gap="small">
+          <InputNumber
+            placeholder="Y Min"
+            value={scales.yMin}
+            onChange={(val) => updateScales({ yMin: val !== null ? Number(val) : undefined })}
+            style={{ width: '100%' }}
           />
-          <TextField
-            label="Y Max"
-            type="number"
-            value={scales.yMax ?? ''}
-            onChange={(e) => updateScales({ yMax: e.target.value ? Number(e.target.value) : undefined })}
-            size="small"
-            fullWidth
+          <InputNumber
+            placeholder="Y Max"
+            value={scales.yMax}
+            onChange={(val) => updateScales({ yMax: val !== null ? Number(val) : undefined })}
+            style={{ width: '100%' }}
           />
-        </Stack>
+        </Flex>
       )}
 
-      {/* X-Axis Mode */}
       {config.chart.type === 'scatter' && (
         <>
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+          <div>
+            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: 12 }}>
               X-Axis Range (Scatter Plot)
-            </Typography>
-            <ToggleButtonGroup
+            </Typography.Text>
+            <Radio.Group
               value={scales.xAxisMode}
-              exclusive
-              onChange={(_, val) => val && updateScales({ xAxisMode: val })}
-              size="small"
+              onChange={(e) => updateScales({ xAxisMode: e.target.value })}
             >
-              <ToggleButton value="auto" sx={{ px: 2 }}>Auto</ToggleButton>
-              <ToggleButton value="manual" sx={{ px: 2 }}>Manual</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
+              <Radio.Button value="auto">Auto</Radio.Button>
+              <Radio.Button value="manual">Manual</Radio.Button>
+            </Radio.Group>
+          </div>
 
           {scales.xAxisMode === 'manual' && (
-            <Stack direction="row" spacing={1.5}>
-              <TextField
-                label="X Min"
-                type="number"
-                value={scales.xMin ?? ''}
-                onChange={(e) => updateScales({ xMin: e.target.value ? Number(e.target.value) : undefined })}
-                size="small"
-                fullWidth
+            <Flex gap="small">
+              <InputNumber
+                placeholder="X Min"
+                value={scales.xMin}
+                onChange={(val) => updateScales({ xMin: val !== null ? Number(val) : undefined })}
+                style={{ width: '100%' }}
               />
-              <TextField
-                label="X Max"
-                type="number"
-                value={scales.xMax ?? ''}
-                onChange={(e) => updateScales({ xMax: e.target.value ? Number(e.target.value) : undefined })}
-                size="small"
-                fullWidth
+              <InputNumber
+                placeholder="X Max"
+                value={scales.xMax}
+                onChange={(val) => updateScales({ xMax: val !== null ? Number(val) : undefined })}
+                style={{ width: '100%' }}
               />
-            </Stack>
+            </Flex>
           )}
         </>
       )}
 
-      {/* Precision */}
-      <Box>
-        <Typography variant="caption" color="text.secondary">
+      <div>
+        <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
           Decimal Precision: {scales.precision}
-        </Typography>
+        </Typography.Text>
         <Slider
           value={scales.precision}
-          onChange={(_, val) => updateScales({ precision: val as number })}
+          onChange={(val) => updateScales({ precision: val })}
           min={0}
           max={6}
           step={1}
-          marks
-          valueLabelDisplay="auto"
+          marks={{ 0: '0', 2: '2', 4: '4', 6: '6' }}
         />
-      </Box>
+      </div>
 
-      {/* Show Price Scale */}
-      <FormControlLabel
-        control={
-          <Switch
-            checked={scales.showPriceScale}
-            onChange={(_, v) => updateScales({ showPriceScale: v })}
-            color="primary"
-            size="small"
-          />
-        }
-        label="Show Y-Axis Labels"
-      />
-    </Stack>
+      <div>
+        <Switch checked={scales.showPriceScale} onChange={(v) => updateScales({ showPriceScale: v })} />
+        <span style={{ marginLeft: 8 }}>Show Y-Axis Labels</span>
+      </div>
+    </Flex>
   );
 };

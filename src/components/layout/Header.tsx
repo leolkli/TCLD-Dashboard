@@ -1,32 +1,20 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { Layout, Avatar, Badge, Dropdown, Button, Space, Tooltip } from 'antd';
+import type { MenuProps } from 'antd';
 import {
-  AppBar,
-  Box,
-  IconButton,
-  Toolbar,
-  Typography,
-  Avatar,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Divider,
-  Badge,
-  Tooltip,
-  ListItemText,
-} from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Notifications as NotificationsIcon,
-  Logout as LogoutIcon,
-  Settings as SettingsIcon,
-  Business as BuildingIcon,
-  Functions as VtagIcon,
-  Widgets as TemplatesIcon,
-  People as UsersIcon,
-  ShowChart as ShowChartIcon,
-} from '@mui/icons-material';
-import { useState } from 'react';
+  MenuOutlined,
+  BellOutlined,
+  LogoutOutlined,
+  SettingOutlined,
+  BankOutlined,
+  FunctionOutlined,
+  AppstoreOutlined,
+  TeamOutlined,
+  LineChartOutlined
+} from '@ant-design/icons';
+
+const { Header: AntHeader } = Layout;
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -35,8 +23,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
 
   const displayName = user?.displayName || 'User';
   const email = user?.email || '';
@@ -47,168 +33,113 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
     .substring(0, 2)
     .toUpperCase();
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleSettingsOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setSettingsAnchorEl(event.currentTarget);
-  };
-
-  const handleSettingsClose = () => {
-    setSettingsAnchorEl(null);
-  };
-
   const handleNavigation = (path: string) => {
     navigate(path);
-    handleSettingsClose();
   };
 
   const handleLogout = () => {
-    handleMenuClose();
     logout();
   };
 
+  const settingsMenuItems: MenuProps['items'] = [
+    {
+      key: 'ptag',
+      icon: <BankOutlined />,
+      label: 'Ptag',
+      onClick: () => handleNavigation('/buildings'),
+    },
+    {
+      key: 'vtag',
+      icon: <FunctionOutlined />,
+      label: 'Vtag',
+      onClick: () => handleNavigation('/admin/vtags'),
+    },
+    {
+      key: 'dashboard-config',
+      icon: <AppstoreOutlined />,
+      label: 'Dashboard Configuration',
+      onClick: () => handleNavigation('/admin/templates'),
+    },
+    {
+      key: 'widget-config',
+      icon: <LineChartOutlined />,
+      label: 'Widget Configurator',
+      onClick: () => handleNavigation('/admin/widget-configurator'),
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'user-management',
+      icon: <TeamOutlined />,
+      label: 'User Management',
+      onClick: () => handleNavigation('/admin/users'),
+    }
+  ];
+
+  const userMenuItems: MenuProps['items'] = [
+    {
+      key: 'user-info',
+      label: (
+        <div style={{ padding: '4px 0', minWidth: 150 }}>
+          <div style={{ fontWeight: 600 }}>{displayName}</div>
+          <div style={{ color: 'rgba(0,0,0,0.45)', fontSize: '12px' }}>{email}</div>
+        </div>
+      ),
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Logout',
+      onClick: handleLogout,
+    },
+  ];
+
   return (
-    <AppBar
-      position="sticky"
-      elevation={0}
-    >
-      <Toolbar>
-        {/* Menu Toggle */}
-        <IconButton
-          edge="start"
-          color="inherit"
-          onClick={onToggleSidebar}
-          sx={{ mr: 2, color: 'text.primary' }}
-        >
-          <MenuIcon />
-        </IconButton>
+    <AntHeader style={{ 
+      background: '#fff', 
+      padding: '0 16px', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'space-between',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1,
+      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <Button 
+          type="text" 
+          icon={<MenuOutlined />} 
+          onClick={onToggleSidebar} 
+          style={{ fontSize: '16px', width: 64, height: 64, marginLeft: '-16px' }}
+        />
+      </div>
 
-        {/* Page Title - Can be dynamic */}
-        <Typography
-          variant="h6"
-          component="div"
-          sx={{ flexGrow: 1, color: 'text.primary' }}
-        >
-          {/* Page title can be set via context or route */}
-        </Typography>
-
-        {/* Settings Menu */}
-        <Box>
+      <Space size="middle" style={{ display: 'flex', alignItems: 'center' }}>
+        <Dropdown menu={{ items: settingsMenuItems }} trigger={['click']} placement="bottomRight">
           <Tooltip title="Settings">
-            <IconButton onClick={handleSettingsOpen} sx={{ mr: 1, color: 'text.secondary' }}>
-              <SettingsIcon />
-            </IconButton>
+            <Button type="text" icon={<SettingOutlined style={{ fontSize: '16px', color: 'rgba(0,0,0,0.45)' }} />} />
           </Tooltip>
-          <Menu
-            anchorEl={settingsAnchorEl}
-            open={Boolean(settingsAnchorEl)}
-            onClose={handleSettingsClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            PaperProps={{
-              sx: {
-                mt: 1,
-                minWidth: 220,
-              },
-            }}
-          >
-            <MenuItem onClick={() => handleNavigation('/buildings')}>
-              <ListItemIcon>
-                <BuildingIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Ptag</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={() => handleNavigation('/admin/vtags')}>
-               <ListItemIcon>
-                <VtagIcon fontSize="small" />
-              </ListItemIcon>
-               <ListItemText>Vtag</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={() => handleNavigation('/admin/templates')}>
-              <ListItemIcon>
-                <TemplatesIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Dashboard Configuration</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={() => handleNavigation('/admin/widget-configurator')}>
-              <ListItemIcon>
-                <ShowChartIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Widget Configurator</ListItemText>
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={() => handleNavigation('/admin/users')}>
-              <ListItemIcon>
-                <UsersIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>User Management</ListItemText>
-            </MenuItem>
-          </Menu>
-        </Box>
+        </Dropdown>
 
-        {/* Notifications */}
         <Tooltip title="Notifications">
-          <IconButton sx={{ mr: 1, ml: 1, color: 'text.secondary' }}>
-            <Badge badgeContent={3} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
+          <Badge count={3} offset={[-4, 4]}>
+            <Button type="text" icon={<BellOutlined style={{ fontSize: '16px', color: 'rgba(0,0,0,0.45)' }} />} />
+          </Badge>
         </Tooltip>
 
-        {/* User Menu */}
-        <Box>
+        <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
           <Tooltip title="User Menu">
-            <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
-              <Avatar
-                sx={{
-                  bgcolor: 'primary.main',
-                  width: 36,
-                  height: 36,
-                  fontSize: '0.875rem',
-                }}
-              >
-                {initials}
-              </Avatar>
-            </IconButton>
+            <Avatar style={{ backgroundColor: '#1890ff', verticalAlign: 'middle', cursor: 'pointer' }}>
+              {initials}
+            </Avatar>
           </Tooltip>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            PaperProps={{
-              sx: {
-                mt: 1,
-                minWidth: 200,
-              },
-            }}
-          >
-            {/* User Info */}
-            <Box sx={{ px: 2, py: 1.5 }}>
-              <Typography variant="subtitle2" fontWeight={600}>
-                {displayName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {email}
-              </Typography>
-            </Box>
-            <Divider />
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              Logout
-            </MenuItem>
-          </Menu>
-        </Box>
-      </Toolbar>
-    </AppBar>
+        </Dropdown>
+      </Space>
+    </AntHeader>
   );
 };

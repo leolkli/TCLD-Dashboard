@@ -1,23 +1,14 @@
 import React, { useMemo } from 'react';
+import { Flex, Radio, Select, Typography } from 'antd';
 import {
-  Box,
-  ToggleButtonGroup,
-  ToggleButton,
-  Typography,
-  Stack,
-  Select,
-  MenuItem,
-  FormControl,
-} from '@mui/material';
-import {
-  ShowChart as LineIcon,
-  BarChart as BarIcon,
-  BubbleChart as ScatterIcon,
-  StackedLineChart as AreaIcon,
-  PieChart as PieIcon,
-  GridOn as HeatmapIcon,
-  Numbers as NumbersIcon,
-} from '@mui/icons-material';
+  LineChartOutlined,
+  BarChartOutlined,
+  DotChartOutlined,
+  AreaChartOutlined,
+  PieChartOutlined,
+  TableOutlined,
+  NumberOutlined
+} from '@ant-design/icons';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 import type { WidgetChartType, DataRelationship } from '@/types/widget';
 
@@ -26,7 +17,6 @@ const relationships: { label: string; value: DataRelationship }[] = [
   { label: 'Change over time', value: 'change-over-time' },
   { label: 'Comparing categories', value: 'comparing-categories' },
   { label: 'Part of a whole', value: 'part-of-whole' },
-  // { label: 'Correlation', value: 'correlation' }, // Hidden for now
 ];
 
 const allChartTypes: {
@@ -35,43 +25,13 @@ const allChartTypes: {
   icon: React.ReactNode;
   validFor: DataRelationship[];
 }[] = [
-  {
-    label: 'KPI',
-    value: 'kpi',
-    icon: <NumbersIcon fontSize="small" />,
-    validFor: ['single-metric'],
-  },
-  {
-    label: 'Line',
-    value: 'line',
-    icon: <LineIcon fontSize="small" />,
-    validFor: ['change-over-time'],
-  },
-  {
-    label: 'Area',
-    value: 'area',
-    icon: <AreaIcon fontSize="small" />,
-    validFor: ['change-over-time'],
-  },
-  {
-    label: 'Bar',
-    value: 'bar',
-    icon: <BarIcon fontSize="small" />,
-    validFor: ['change-over-time', 'comparing-categories', 'part-of-whole'],
-  },
-  {
-    label: 'Scatter',
-    value: 'scatter',
-    icon: <ScatterIcon fontSize="small" />,
-    validFor: ['comparing-categories', 'correlation'],
-  },
-  { label: 'Pie', value: 'pie', icon: <PieIcon fontSize="small" />, validFor: ['part-of-whole'] },
-  {
-    label: 'Heatmap',
-    value: 'heatmap',
-    icon: <HeatmapIcon fontSize="small" />,
-    validFor: ['change-over-time', 'correlation'],
-  },
+  { label: 'KPI', value: 'kpi', icon: <NumberOutlined />, validFor: ['single-metric'] },
+  { label: 'Line', value: 'line', icon: <LineChartOutlined />, validFor: ['change-over-time'] },
+  { label: 'Area', value: 'area', icon: <AreaChartOutlined />, validFor: ['change-over-time'] },
+  { label: 'Bar', value: 'bar', icon: <BarChartOutlined />, validFor: ['change-over-time', 'comparing-categories', 'part-of-whole'] },
+  { label: 'Scatter', value: 'scatter', icon: <DotChartOutlined />, validFor: ['comparing-categories', 'correlation'] },
+  { label: 'Pie', value: 'pie', icon: <PieChartOutlined />, validFor: ['part-of-whole'] },
+  { label: 'Heatmap', value: 'heatmap', icon: <TableOutlined />, validFor: ['change-over-time', 'correlation'] },
 ];
 
 export const ChartSettings: React.FC = () => {
@@ -79,7 +39,6 @@ export const ChartSettings: React.FC = () => {
   const { chart } = config;
 
   const handleRelationshipChange = (newRel: DataRelationship) => {
-    // Find first valid chart for this relationship
     const firstValid = allChartTypes.find((ct) => ct.validFor.includes(newRel));
     updateChart({
       relationship: newRel,
@@ -88,69 +47,41 @@ export const ChartSettings: React.FC = () => {
   };
 
   const validCharts = useMemo(
-    () =>
-      allChartTypes.filter((ct) => ct.validFor.includes(chart.relationship || 'change-over-time')),
+    () => allChartTypes.filter((ct) => ct.validFor.includes(chart.relationship || 'change-over-time')),
     [chart.relationship]
   );
 
   return (
-    <Stack spacing={2}>
-      {/* Data Relationship */}
-      <FormControl size="small" fullWidth>
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+    <Flex vertical gap="middle">
+      <div style={{ width: '100%' }}>
+        <Typography.Text type="secondary" style={{ marginBottom: 4, display: 'block', fontSize: 12 }}>
           What is the data relationship?
-        </Typography>
+        </Typography.Text>
         <Select
           value={chart.relationship || 'change-over-time'}
-          onChange={(e) => handleRelationshipChange(e.target.value as DataRelationship)}
-          displayEmpty
-          sx={{ borderRadius: 2 }}
-        >
-          {relationships.map((rel) => (
-            <MenuItem key={rel.value} value={rel.value}>
-              {rel.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          onChange={handleRelationshipChange}
+          options={relationships}
+          style={{ width: '100%' }}
+        />
+      </div>
 
-      {/* Chart Type */}
-      <Box>
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+      <div>
+        <Typography.Text type="secondary" style={{ marginBottom: 4, display: 'block', fontSize: 12 }}>
           Chart Type
-        </Typography>
-        <ToggleButtonGroup
+        </Typography.Text>
+        <Radio.Group
           value={chart.type}
-          exclusive
-          onChange={(_, val) => val && updateChart({ type: val })}
-          size="small"
-          sx={{ flexWrap: 'wrap', gap: 0.5 }}
+          onChange={(e) => updateChart({ type: e.target.value })}
         >
-          {validCharts.map((ct) => (
-            <ToggleButton
-              key={ct.value}
-              value={ct.value}
-              sx={{
-                display: 'flex',
-                gap: 0.5,
-                px: 1.5,
-                borderRadius: '8px !important',
-                border: '1px solid',
-                borderColor: 'grey.300',
-                '&.Mui-selected': {
-                  bgcolor: 'primary.main',
-                  color: 'primary.contrastText',
-                  '&:hover': { bgcolor: 'primary.dark' },
-                },
-              }}
-            >
-              {ct.icon}
-              {ct.label}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-      </Box>
-
-      </Stack>
+          <Flex wrap="wrap" gap="small">
+            {validCharts.map((ct) => (
+              <Radio.Button key={ct.value} value={ct.value} style={{ borderRadius: 8 }}>
+                {ct.icon} <span style={{ marginLeft: 4 }}>{ct.label}</span>
+              </Radio.Button>
+            ))}
+          </Flex>
+        </Radio.Group>
+      </div>
+    </Flex>
   );
 };

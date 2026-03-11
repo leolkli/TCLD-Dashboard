@@ -1,22 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Stack,
-  FormControl,
-  InputLabel,
-  Select
-} from '@mui/material';
+import { Modal, Input, Select, Flex } from 'antd';
 import { useDashboardGlobalStore } from '@/store/dashboardGlobalStore';
 import { useDashboardStore } from '@/store/dashboardStore';
 import type { WidgetChartType } from '@/types/widget';
 
-const CHART_TYPES: { value: WidgetChartType; label: string }[] = [
+const CHART_TYPES = [
   { value: 'line', label: 'Line Chart' },
   { value: 'bar', label: 'Bar Chart' },
   { value: 'area', label: 'Area Chart' },
@@ -73,38 +61,33 @@ export const WidgetEditModal: React.FC = () => {
   };
 
   return (
-    <Dialog open={!!editingWidgetId} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Edit Widget Configuration</DialogTitle>
-      <DialogContent dividers>
-        <Stack spacing={3} sx={{ mt: 1 }}>
-          <TextField
-            label="Widget Name"
-            fullWidth
+    <Modal 
+      open={!!editingWidgetId} 
+      onCancel={handleClose} 
+      onOk={handleSave}
+      title="Edit Widget Configuration"
+      okText={isSaving ? 'Saving...' : 'Save Changes'}
+      confirmLoading={isSaving}
+      width={400}
+    >
+      <Flex vertical gap={24} style={{ marginTop: 16, marginBottom: 16 }}>
+        <Flex vertical gap={8}>
+          <label>Widget Name</label>
+          <Input
             value={localName}
             onChange={(e) => setLocalName(e.target.value)}
           />
-          <FormControl fullWidth>
-            <InputLabel>Chart Type</InputLabel>
-            <Select
-              value={localType}
-              label="Chart Type"
-              onChange={(e) => setLocalType(e.target.value as WidgetChartType)}
-            >
-              {CHART_TYPES.map(type => (
-                <MenuItem key={type.value} value={type.value}>
-                  {type.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={isSaving}>Cancel</Button>
-        <Button variant="contained" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </Flex>
+        
+        <Flex vertical gap={8}>
+          <label>Chart Type</label>
+          <Select
+            value={localType}
+            onChange={(value) => setLocalType(value as WidgetChartType)}
+            options={CHART_TYPES}
+          />
+        </Flex>
+      </Flex>
+    </Modal>
   );
 };

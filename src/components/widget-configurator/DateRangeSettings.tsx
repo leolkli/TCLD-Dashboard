@@ -1,16 +1,7 @@
 import React from 'react';
-import {
-  Box,
-  ToggleButtonGroup,
-  ToggleButton,
-  Typography,
-  
-  
-} from '@mui/material';
+import { Typography, Radio, Flex } from 'antd';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 import type { AggregationInterval } from '@/types/widget';
-
-
 
 const aggregations: { label: string; value: AggregationInterval }[] = [
   { label: 'Raw', value: 'raw' },
@@ -24,96 +15,22 @@ export const DateRangeSettings: React.FC = () => {
   const { dateRange } = config;
 
   return (
-    <Box>
-      {/* Time Range and Custom Date hidden for now
-      <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-        Time Range
-      </Typography>
-      <ToggleButtonGroup
-        value={dateRange.preset}
-        exclusive
-        onChange={(_, val) => val && updateDateRange({ preset: val })}
-        size="small"
-        sx={{ flexWrap: 'wrap', gap: 0.5, mb: 2 }}
-      >
-        {presets.map((p) => (
-          <ToggleButton
-            key={p.value}
-            value={p.value}
-            sx={{
-              px: 1.5,
-              py: 0.5,
-              borderRadius: '8px !important',
-              border: '1px solid',
-              borderColor: 'grey.300',
-              '&.Mui-selected': {
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                '&:hover': { bgcolor: 'primary.dark' },
-              },
-            }}
-          >
-            {p.label}
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
-
-      {dateRange.preset === 'custom' && (
-        <Stack spacing={1.5} sx={{ mb: 2 }}>
-          <TextField
-            label="Start Date"
-            type="date"
-            value={dateRange.customStart?.split('T')[0] || ''}
-            onChange={(e) => updateDateRange({ customStart: new Date(e.target.value).toISOString() })}
-            size="small"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="End Date"
-            type="date"
-            value={dateRange.customEnd?.split('T')[0] || ''}
-            onChange={(e) => updateDateRange({ customEnd: new Date(e.target.value).toISOString() })}
-            size="small"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
-        </Stack>
-      )}
-      */}
-
-      {/* Aggregation */}
-      <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+    <div>
+      <Typography.Text type="secondary" style={{ marginBottom: 4, display: 'block', fontSize: 12 }}>
         Aggregation
-      </Typography>
-      <ToggleButtonGroup
+      </Typography.Text>
+      <Radio.Group
         value={dateRange.aggregation}
-        exclusive
-        onChange={(_, val) => val && updateDateRange({ aggregation: val })}
-        size="small"
-        sx={{ flexWrap: 'wrap', gap: 0.5 }}
+        onChange={(e) => updateDateRange({ aggregation: e.target.value })}
       >
-        {aggregations.map((a) => (
-          <ToggleButton
-            key={a.value}
-            value={a.value}
-            sx={{
-              px: 1.5,
-              py: 0.5,
-              borderRadius: '8px !important',
-              border: '1px solid',
-              borderColor: 'grey.300',
-              '&.Mui-selected': {
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                '&:hover': { bgcolor: 'primary.dark' },
-              },
-            }}
-          >
-            {a.label}
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
-    </Box>
+        <Flex wrap="wrap" gap="small">
+          {aggregations.map((a) => (
+            <Radio.Button key={a.value} value={a.value} style={{ borderRadius: 8 }}>
+              {a.label}
+            </Radio.Button>
+          ))}
+        </Flex>
+      </Radio.Group>
+    </div>
   );
 };

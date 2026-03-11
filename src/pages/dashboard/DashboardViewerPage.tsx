@@ -5,15 +5,15 @@
  * Resolves widget configs from the saved widget library and renders ECharts charts.
  *
  * Used for:
- *   /portfolio/:portfolioName/dashboard   → portfolio-main dashboard
- *   /buildings/:code/dashboard            → building-main dashboard
- *   /buildings/:code/dashboard/:dashId    → building sub-dashboard
+ *   /portfolio/:portfolioName/dashboard   -> portfolio-main dashboard
+ *   /buildings/:code/dashboard            -> building-main dashboard
+ *   /buildings/:code/dashboard/:dashId    -> building sub-dashboard
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Responsive, WidthProvider } from 'react-grid-layout';
-import { Box, Typography, Alert, CircularProgress } from '@mui/material';
+import ResponsiveGridLayoutImport, { WidthProvider } from 'react-grid-layout';
+import { Typography, Alert, Spin, Flex } from 'antd';
 import { DashboardWidgetLoader } from '@/components/dashboard/DashboardWidgetLoader';
 import { DashboardToolbar } from '@/components/dashboard/DashboardToolbar';
 import { WidgetLibraryModal } from '@/components/dashboard/WidgetLibraryModal';
@@ -27,7 +27,12 @@ import type { WidgetConfiguration } from '@/types/widget';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-const ResponsiveGridLayout = WidthProvider(Responsive);
+const { Title, Text } = Typography;
+
+// Safely access Responsive across CJS/ESM bounds for Vite
+const ResponsiveGridLayout = WidthProvider(
+  ResponsiveGridLayoutImport.Responsive || ResponsiveGridLayoutImport
+);
 
 export const DashboardViewerPage: React.FC = () => {
   const { portfolioName, code: buildingCode, dashId } = useParams<{
@@ -45,7 +50,7 @@ export const DashboardViewerPage: React.FC = () => {
     fetchSavedWidgets,
     setCurrentDashboard,
     updateLayout,
-    removeWidgetFromDashboard
+    removeWidgetFromDashboard,
   } = useDashboardStore();
 
   const { isEditMode } = useDashboardGlobalStore();
@@ -67,9 +72,15 @@ export const DashboardViewerPage: React.FC = () => {
       try {
         let dashboards: Dashboard[] = [];
         if (portfolioName) {
-          dashboards = await synapseService.getDashboards({ portfolio: decodeURIComponent(portfolioName), scope: 'portfolio-main' });
+          dashboards = await synapseService.getDashboards({
+            portfolio: decodeURIComponent(portfolioName),
+            scope: 'portfolio-main',
+          });
         } else if (buildingCode) {
-          dashboards = await synapseService.getDashboards({ building: buildingCode, scope: 'building-main' });
+          dashboards = await synapseService.getDashboards({
+            building: buildingCode,
+            scope: 'building-main',
+          });
         }
         if (dashboards.length > 0) {
           setCurrentDashboard(dashboards[0]);
@@ -77,13 +88,19 @@ export const DashboardViewerPage: React.FC = () => {
           setCurrentDashboard(null);
         }
       } catch (err) {
-        console.error("Failed to load dashboard in DashboardViewerPage:", err);
+        console.error('Failed to load dashboard in DashboardViewerPage:', err);
         setCurrentDashboard(null);
       }
     };
 
     loadDashboard();
-  }, [portfolioName, buildingCode, dashId, fetchDashboard, setCurrentDashboard]);
+  }, [
+    portfolioName,
+    buildingCode,
+    dashId,
+    fetchDashboard,
+    setCurrentDashboard,
+  ]);
 
   // Fetch widget library when dashboard loads
   useEffect(() => {
@@ -111,49 +128,64 @@ export const DashboardViewerPage: React.FC = () => {
     return { lg: currentDashboard.layout };
   }, [currentDashboard]);
 
-  const title = currentDashboard?.name
-    || (portfolioName ? `${decodeURIComponent(portfolioName)} Dashboard` : '')
-    || (buildingCode ? `${buildingCode} Dashboard` : 'Dashboard');
+  const pageTitle =
+    currentDashboard?.name ||
+    (portfolioName ? `${decodeURIComponent(portfolioName)} Dashboard` : '') ||
+    (buildingCode ? `${buildingCode} Dashboard` : 'Dashboard');
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
-      </Box>
+      <Flex justify="center" align="center" style={{ minHeight: '60vh' }}>
+        <Spin size="large" />
+      </Flex>
     );
   }
 
   if (!currentDashboard) {
     return (
-      <Box sx={{ p: 4 }}>
-        <Typography variant="h5" fontWeight={700} gutterBottom>
-          {title}
-        </Typography>
-        <Alert severity="info" sx={{ maxWidth: 600 }}>
-          No dashboard has been configured yet. Go to{' '}
-          <strong>Settings &rarr; Dashboard Configuration</strong> to create one.
-        </Alert>
-      </Box>
+      <div style={{ padding: '32px' }}>
+        <Title level={4} style={{ marginBottom: '16px' }}>
+          {pageTitle}
+        </Title>
+        <Alert
+          type="info"
+          message={
+            <span>
+              No dashboard has been configured yet. Go to{' '}
+              <strong>Settings &rarr; Dashboard Configuration</strong> to create
+              one.
+            </span>
+          }
+          style={{ maxWidth: '600px' }}
+        />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 4 }}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
+      <div style={{ padding: '32px' }}>
+        <Alert type="error" message={error} />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div style={{ padding: '16px' }}>
       <DashboardToolbar />
 
       {currentDashboard.widgets.length === 0 ? (
-        <Alert severity="info" sx={{ maxWidth: 600 }}>
-          This dashboard has no widgets yet. Go to{' '}
-          <strong>Settings &rarr; Dashboard Configuration</strong> to add widgets.
-        </Alert>
+        <Alert
+          type="info"
+          message={
+            <span>
+              This dashboard has no widgets yet. Go to{' '}
+              <strong>Settings &rarr; Dashboard Configuration</strong> to add
+              widgets.
+            </span>
+          }
+          style={{ maxWidth: '600px', marginTop: '16px' }}
+        />
       ) : (
         <ResponsiveGridLayout
           className="layout"
@@ -163,7 +195,7 @@ export const DashboardViewerPage: React.FC = () => {
           rowHeight={80}
           isDraggable={isEditMode}
           isResizable={isEditMode}
-          onLayoutChange={(currentLayout) => {
+          onLayoutChange={(currentLayout: any) => {
             if (isEditMode) {
               updateLayout(currentLayout);
             }
@@ -182,20 +214,21 @@ export const DashboardViewerPage: React.FC = () => {
                     onRemove={removeWidgetFromDashboard}
                   />
                 ) : (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                  <Flex
+                    justify="center"
+                    align="center"
+                    style={{
                       height: '100%',
-                      border: '1px dashed',
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      color: 'text.disabled',
+                      border: '1px dashed #d9d9d9',
+                      borderRadius: '8px',
+                      backgroundColor: '#fafafa',
+                      padding: '16px',
                     }}
                   >
-                    <Typography variant="caption">Widget {wi.widgetName} not found</Typography>
-                  </Box>
+                    <Text type="secondary" style={{ textAlign: 'center' }}>
+                      Widget {wi.widgetName} not found
+                    </Text>
+                  </Flex>
                 )}
               </div>
             );
@@ -206,6 +239,6 @@ export const DashboardViewerPage: React.FC = () => {
       {/* Modals */}
       <WidgetLibraryModal />
       <WidgetEditModal />
-    </Box>
+    </div>
   );
 };

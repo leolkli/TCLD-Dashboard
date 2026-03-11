@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  FormControlLabel,
-  Switch,
-  ToggleButtonGroup,
-  ToggleButton,
-  Typography,
-  Stack,
-  TextField
-} from '@mui/material';
+import { Flex, Input, Typography, Switch, Radio } from 'antd';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
 import type { HeaderFontSize } from '@/types/widget';
 
@@ -23,75 +14,46 @@ export const HeaderSettings: React.FC = () => {
   const { header, general } = config;
 
   return (
-    <Stack spacing={2}>
-      <TextField
-        label="Description / Subtitle"
+    <Flex vertical gap="middle">
+      <Input.TextArea
+        placeholder="Description / Subtitle"
         value={general.description || ''}
         onChange={(e) => updateGeneral({ description: e.target.value })}
-        fullWidth
-        size="small"
-        multiline
         rows={2}
       />
 
-      <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2 }}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={header.visible}
-              onChange={(_, v) => updateHeader({ visible: v })}
-              color="primary"
-            />
-          }
-          label={<strong>Show Header Area</strong>}
-        />
-      </Box>
+      <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+        <Switch checked={header.visible} onChange={(v) => updateHeader({ visible: v })} />
+        <strong style={{ marginLeft: 8 }}>Show Header Area</strong>
+      </div>
 
       {header.visible && (
-        <Stack spacing={1.5} pl={1} borderLeft="2px solid" borderColor="primary.light">
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+        <Flex vertical gap="small" style={{ paddingLeft: 8, borderLeft: '2px solid #1677ff' }}>
+          <div>
+            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4, fontSize: 12 }}>
               Title Typography Size
-            </Typography>
-            <ToggleButtonGroup
+            </Typography.Text>
+            <Radio.Group
               value={header.fontSize}
-              exclusive
-              onChange={(_, val) => val && updateHeader({ fontSize: val })}
-              size="small"
+              onChange={(e) => updateHeader({ fontSize: e.target.value })}
             >
               {fontSizes.map((f) => (
-                <ToggleButton key={f.value} value={f.value} sx={{ px: 2 }}>
-                  {f.label}
-                </ToggleButton>
+                <Radio.Button key={f.value} value={f.value}>{f.label}</Radio.Button>
               ))}
-            </ToggleButtonGroup>
-          </Box>
+            </Radio.Group>
+          </div>
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={header.showLastValue}
-                onChange={(_, v) => updateHeader({ showLastValue: v })}
-                color="primary"
-                size="small"
-              />
-            }
-            label="Display 'Last Value' Metric"
-          />
+          <div>
+            <Switch size="small" checked={header.showLastValue} onChange={(v) => updateHeader({ showLastValue: v })} />
+            <span style={{ marginLeft: 8 }}>Display 'Last Value' Metric</span>
+          </div>
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={header.showChangePercent}
-                onChange={(_, v) => updateHeader({ showChangePercent: v })}
-                color="primary"
-                size="small"
-              />
-            }
-            label="Display 'Period Change %'"
-          />
-        </Stack>
+          <div>
+            <Switch size="small" checked={header.showChangePercent} onChange={(v) => updateHeader({ showChangePercent: v })} />
+            <span style={{ marginLeft: 8 }}>Display 'Period Change %'</span>
+          </div>
+        </Flex>
       )}
-    </Stack>
+    </Flex>
   );
 };

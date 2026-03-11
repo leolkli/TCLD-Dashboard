@@ -1,234 +1,273 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Box,
   Typography,
   Card,
-  CardContent,
   Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  TextField,
-  InputAdornment,
-  Chip,
-  IconButton,
+  Input,
+  Tag,
   Button,
   Tooltip,
-} from '@mui/material';
+  Modal,
+  Space
+} from 'antd';
 import {
-  Search as SearchIcon,
-  Add as AddIcon,
-  Edit as EditIcon,
-  History as HistoryIcon,
-  MoreVert as MoreIcon,
-} from '@mui/icons-material';
-import type { Vtag } from '@/types';
+  SearchOutlined,
+  PlusOutlined,
+  EditOutlined,
+  HistoryOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined
+} from '@ant-design/icons';
 
-// Mock vtags data
-const mockVtags: Vtag[] = [
-  {
-    id: '1',
-    name: 'total_energy_kwh',
-    displayName: 'Total Energy (kWh)',
-    description: 'Sum of all electricity meters',
-    unit: 'kWh',
-    category: 'energy_consumption',
-    buildingId: null,
-    currentVersionId: 'v1',
-    isActive: true,
-    createdBy: 'admin',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'energy_per_sqm',
-    displayName: 'Energy per m²',
-    description: 'Energy efficiency metric normalized by floor area',
-    unit: 'kWh/m²',
-    category: 'efficiency',
-    buildingId: null,
-    currentVersionId: 'v1',
-    isActive: true,
-    createdBy: 'admin',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'carbon_emissions',
-    displayName: 'Carbon Emissions',
-    description: 'CO2 equivalent emissions from energy usage',
-    unit: 'kg CO2',
-    category: 'environmental',
-    buildingId: null,
-    currentVersionId: 'v2',
-    isActive: true,
-    createdBy: 'admin',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+import { useNavigate } from 'react-router-dom';
 
-const categoryColors: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'secondary'> = {
-  energy_consumption: 'primary',
-  energy_cost: 'warning',
-  efficiency: 'success',
-  environmental: 'info',
-  performance: 'secondary',
-  custom: 'secondary',
-};
+const { Title, Text } = Typography;
 
-/**
- * Vtag Management Page Component
- * Create and manage virtual tags (calculated metrics)
- */
 export const VtagManagementPage: React.FC = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [vtags, setVtags] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredVtags = mockVtags.filter(
-    (v) =>
-      v.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Delete modal usage via antd Modal.confirm
+  const [modal, contextHolder] = Modal.useModal();
+
+  const fetchVtags = () => {
+    setLoading(true);
+    fetch('/api/vtags')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setVtags(data.data);
+        }
+      })
+      .catch(err => console.error("Error fetching vtags:", err))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchVtags();
+  }, []);
+
+  const showDeleteConfirm = (vtag: any) => {
+    modal.confirm({
+      title: 'Delete Virtual Tag',
+      icon: <ExclamationCircleOutlined />,
+      content: `Are you sure you want to delete ${vtag.name} (${vtag.systemCode})? This action cannot be undone.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          const response = await fetch(`/api/vtags/${vtag.systemCode}`, {
+            method: 'DELETE'
+          });
+          const data = await response.json();
+          if (data.success) {
+            setVtags(prev => prev.filter(v => v.systemCode !== vtag.systemCode));
+          }
+        } catch (err) {
+          console.error("Failed to delete", err);
+        }
+      },
+    });
+  };
+
+  const filteredVtags = vtags.filter(v =>
+    (v.name && v.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (v.systemCode && v.systemCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (v.description && v.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const getColumnSearchProps = (dataIndex: string) => ({
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: any) => (
+      <div style={{ padding: 8 }}>
+        <Input
+          placeholder={`Search ${dataIndex}`}
+          value={selectedKeys[0]}
+          onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+          onPressEnter={() => confirm()}
+          style={{ marginBottom: 8, display: 'block' }}
+        />
+        <Space>
+          <Button
+            type="primary"
+            onClick={() => confirm()}
+            icon={<SearchOutlined />}
+            size="small"
+            style={{ width: 90 }}
+          >
+            Search
+          </Button>
+          <Button
+            onClick={() => {
+              clearFilters && clearFilters();
+              confirm();
+            }}
+            size="small"
+            style={{ width: 90 }}
+          >
+            Reset
+          </Button>
+        </Space>
+      </div>
+    ),
+    filterIcon: (filtered: boolean) => (
+      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
+    ),
+    onFilter: (value: any, record: any) =>
+      record[dataIndex]
+        ? record[dataIndex].toString().toLowerCase().includes((value as string).toLowerCase())
+        : false,
+  });
+
+  const columns = [
+    {
+      title: 'Code',
+      dataIndex: 'systemCode',
+      key: 'systemCode',
+      ...getColumnSearchProps('systemCode'),
+      render: (text: string) => <Text strong type="success" style={{ fontSize: '0.85em' }}>{text}</Text>,
+    },
+    {
+      title: 'Name',
+      key: 'name',
+      dataIndex: 'name',
+      ...getColumnSearchProps('name'),
+      render: (_: any, record: any) => (
+        <div>
+          <Text strong><code style={{ fontSize: '0.9em' }}>{record.name}</code></Text>
+          {record.description && (
+            <div style={{ fontSize: 12, color: 'gray' }}>{record.description}</div>
+          )}
+        </div>
+      )
+    },
+    {
+      title: 'Unit',
+      dataIndex: 'unit',
+      key: 'unit',
+      ...getColumnSearchProps('unit'),
+    },
+    {
+      title: 'Calculation Type',
+      dataIndex: 'calculationType',
+      key: 'calculationType',
+      ...getColumnSearchProps('calculationType'),
+      render: (text: string) => text || 'N/A'
+    },
+    {
+      title: 'Calculation Step',
+      dataIndex: 'calculationStep',
+      key: 'calculationStep',
+      ...getColumnSearchProps('calculationStep'),
+      render: (text: string) => text || 'N/A'
+    },
+    {
+      title: 'Consumption',
+      dataIndex: 'isAccumulated',
+      key: 'isAccumulated',
+      ...getColumnSearchProps('isAccumulated'),
+      render: (val: string) => (
+        <Tag color={val === 'TRUE' ? 'blue' : 'default'}>
+          {val === 'TRUE' ? 'Accumulated' : 'Actual'}
+        </Tag>
+      )
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      ...getColumnSearchProps('status'),
+      render: (status: string) => (
+        <Tag color={status === 'Active' ? 'green' : 'default'}>
+          {status || 'Active'}
+        </Tag>
+      )
+    },
+    {
+      title: 'Version',
+      dataIndex: 'version',
+      key: 'version',
+      render: (ver: number) => <Tag color="purple">v{ver || 1}</Tag>
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      align: 'right' as const,
+      render: (_: any, record: any) => (
+        <Space size="small">
+          <Tooltip title="Edit">
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              onClick={() => navigate(`/admin/vtags/${record.systemCode}`)} 
+            />
+          </Tooltip>
+          <Tooltip title="Version History">
+            <Button 
+              type="text" 
+              icon={<HistoryOutlined />} 
+              onClick={() => navigate(`/admin/vtags/${record.systemCode}?history=true`)} 
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Button 
+              type="text" 
+              danger 
+              icon={<DeleteOutlined />} 
+              onClick={() => showDeleteConfirm(record)} 
+            />
+          </Tooltip>
+        </Space>
+      )
+    }
+  ];
+
   return (
-    <Box>
+    <div style={{ padding: '0 0 24px 0' }}>
+      {contextHolder}
+      
       {/* Page Header */}
-      <Box
-        sx={{
-          mb: 4,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-        }}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Virtual Tags (Vtags)
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Define calculated metrics from physical tags (Ptags)
-          </Typography>
-        </Box>
-        <Button variant="contained" startIcon={<AddIcon />}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+        <div>
+          <Title level={3} style={{ margin: 0 }}>Virtual Tags (Vtags)</Title>
+          <Text type="secondary">Define calculated metrics from physical tags (Ptags)</Text>
+        </div>
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />}
+          onClick={() => navigate('/admin/vtags/new')}
+        >
           New Vtag
         </Button>
-      </Box>
+      </div>
 
       {/* Search */}
-      <Box sx={{ mb: 3 }}>
-        <TextField
+      <div style={{ marginBottom: 24 }}>
+        <Input
           placeholder="Search virtual tags..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          size="small"
-          sx={{ width: 300 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
+          prefix={<SearchOutlined style={{ color: 'rgba(0,0,0,.25)' }} />}
+          style={{ width: 300 }}
         />
-      </Box>
+      </div>
 
       {/* Vtags Table */}
-      <Card>
-        <CardContent sx={{ p: 0 }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Display Name</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Unit</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Version</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredVtags
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((vtag) => (
-                    <TableRow key={vtag.id} hover>
-                      <TableCell>
-                        <Typography fontWeight={500}>{vtag.displayName}</Typography>
-                        {vtag.description && (
-                          <Typography variant="caption" color="text.secondary">
-                            {vtag.description}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <code style={{ fontSize: '0.85em' }}>{vtag.name}</code>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={vtag.category.replace('_', ' ')}
-                          size="small"
-                          color={categoryColors[vtag.category] || 'default'}
-                          sx={{ textTransform: 'capitalize' }}
-                        />
-                      </TableCell>
-                      <TableCell>{vtag.unit}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={vtag.isActive ? 'Active' : 'Inactive'}
-                          size="small"
-                          color={vtag.isActive ? 'success' : 'default'}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={vtag.currentVersionId}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Tooltip title="Edit">
-                          <IconButton size="small">
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Version History">
-                          <IconButton size="small">
-                            <HistoryIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="More">
-                          <IconButton size="small">
-                            <MoreIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            component="div"
-            count={filteredVtags.length}
-            page={page}
-            onPageChange={(_, newPage) => setPage(newPage)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-          />
-        </CardContent>
+      <Card variant="borderless" className="shadow-sm" styles={{ body: { padding: 0 } }}>
+        <Table 
+          columns={columns} 
+          dataSource={filteredVtags} 
+          rowKey="id"
+          loading={loading}
+          pagination={{ 
+            defaultPageSize: 10, 
+            showSizeChanger: true, 
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
+          }}
+        />
       </Card>
-    </Box>
+    </div>
   );
 };

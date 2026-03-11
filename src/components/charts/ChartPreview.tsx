@@ -1,30 +1,23 @@
-import React from 'react';
+﻿import React from 'react';
+import { Skeleton, Alert, Tag, Tooltip, Button, Typography, Flex, theme } from 'antd';
 import {
-  Box,
-  Typography,
-  Chip,
-  Skeleton,
-  Alert,
-  Stack,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
-import {
-  Refresh as RefreshIcon,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-} from '@mui/icons-material';
+  ReloadOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+} from '@ant-design/icons';
 import { EChartsWidget } from './EChartsWidget';
 import { useWidgetConfigStore } from '@/store/widgetConfigStore';
+
+const { Text, Title } = Typography;
 
 export const ChartPreview: React.FC = () => {
   const { config, previewData, isLoading, error, fetchPreviewData } =
     useWidgetConfigStore();
+  const { token } = theme.useToken();
 
   const { dataPoints, header, chart } = config;
   const hasData = dataPoints.length > 0 && Object.keys(previewData).length > 0;
 
-  // Compute last value + change for header display
   const lastValueInfo = React.useMemo(() => {
     if (!hasData || !dataPoints[0]) return null;
     const series = previewData[dataPoints[0].code];
@@ -37,142 +30,129 @@ export const ChartPreview: React.FC = () => {
   }, [hasData, previewData, dataPoints]);
 
   return (
-    <Box
-      sx={{
+    <Flex
+      vertical
+      style={{
         height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        bgcolor: chart.backgroundColor || 'background.paper',
-        borderRadius: 2,
+        backgroundColor: chart.backgroundColor || token.colorBgContainer,
+        borderRadius: token.borderRadiusLG,
         overflow: 'hidden',
       }}
     >
-      {/* Header Bar */}
       {header.visible && (
-        <Box
-          sx={{
-            px: 2.5,
-            pt: 2,
-            pb: 1,
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
+        <Flex
+          align="flex-start"
+          justify="space-between"
+          style={{
+            padding: '16px 20px 8px 20px',
           }}
         >
-          <Box>
-            <Typography
-              variant={
+          <div>
+            <Title
+              level={
                 header.fontSize === 'large'
-                  ? 'h5'
+                  ? 4
                   : header.fontSize === 'small'
-                    ? 'body1'
-                    : 'h6'
+                    ? 5
+                    : 5
               }
-              fontWeight={600}
-              color="text.primary"
-              noWrap
+              style={{ margin: 0, fontWeight: 600, color: token.colorText }}
+              ellipsis
             >
               {config.general.title || 'Untitled Widget'}
-            </Typography>
+            </Title>
 
-            {/* Data point chips */}
             {dataPoints.length > 0 && (
-              <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
+              <Flex wrap="wrap" gap="4px" style={{ marginTop: 4 }}>
                 {dataPoints.map((dp) => (
-                  <Chip
+                  <Tag
                     key={dp.code}
-                    label={dp.name || dp.code}
-                    size="small"
-                    sx={{
-                      bgcolor: `${dp.color}18`,
-                      color: dp.color,
+                    color={dp.color}
+                    style={{
+                      margin: 0,
                       fontWeight: 500,
                       fontSize: '0.7rem',
-                      height: 22,
+                      lineHeight: '20px',
                     }}
-                  />
+                  >
+                    {dp.name || dp.code}
+                  </Tag>
                 ))}
-              </Stack>
+              </Flex>
             )}
 
-            {/* Last value + change */}
             {header.showLastValue && lastValueInfo && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                <Typography variant="h5" fontWeight={700} color="text.primary">
+              <Flex align="center" gap={8} style={{ marginTop: 4 }}>
+                <Text strong style={{ fontSize: 20, color: token.colorText }}>
                   {lastValueInfo.last.toLocaleString(undefined, {
                     maximumFractionDigits: config.scales.precision,
                   })}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>
                   {lastValueInfo.uom}
-                </Typography>
+                </Text>
                 {header.showChangePercent && (
-                  <Chip
-                    size="small"
+                  <Tag
                     icon={
                       lastValueInfo.change >= 0 ? (
-                        <TrendingUpIcon sx={{ fontSize: 14 }} />
+                        <ArrowUpOutlined />
                       ) : (
-                        <TrendingDownIcon sx={{ fontSize: 14 }} />
+                        <ArrowDownOutlined />
                       )
                     }
-                    label={`${lastValueInfo.changePct >= 0 ? '+' : ''}${lastValueInfo.changePct.toFixed(2)}%`}
                     color={lastValueInfo.change >= 0 ? 'success' : 'error'}
-                    variant="outlined"
-                    sx={{ fontWeight: 600, fontSize: '0.7rem', height: 22 }}
-                  />
+                    style={{ fontWeight: 600, fontSize: '0.7rem', margin: 0 }}
+                  >
+                    {lastValueInfo.changePct >= 0 ? '+' : ''}
+                    {lastValueInfo.changePct.toFixed(2)}%
+                  </Tag>
                 )}
-              </Box>
+              </Flex>
             )}
-          </Box>
+          </div>
 
-          {/* Refresh button */}
           <Tooltip title="Refresh data">
-            <IconButton
+            <Button
+              type="text"
               size="small"
+              icon={<ReloadOutlined />}
               onClick={fetchPreviewData}
               disabled={isLoading || dataPoints.length === 0}
-              sx={{ color: 'text.secondary' }}
-            >
-              <RefreshIcon fontSize="small" />
-            </IconButton>
+              style={{ color: token.colorTextSecondary }}
+            />
           </Tooltip>
-        </Box>
+        </Flex>
       )}
 
-      {/* Chart Area */}
-      <Box sx={{ flex: 1, minHeight: 0, position: 'relative', px: 1, pb: 1 }}>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', padding: '0 8px 8px 8px' }}>
         {isLoading && (
-          <Box sx={{ p: 2, height: '100%' }}>
-            <Skeleton variant="rectangular" height="100%" sx={{ borderRadius: 2 }} />
-          </Box>
+          <div style={{ padding: 16, height: '100%' }}>
+            <Skeleton.Node active style={{ width: '100%', height: '100%', borderRadius: token.borderRadiusLG }} />
+          </div>
         )}
 
         {error && (
-          <Alert severity="error" sx={{ m: 2 }}>
-            {error}
-          </Alert>
+          <Alert type="error" message={error} style={{ margin: 16 }} />
         )}
 
         {!isLoading && !error && dataPoints.length === 0 && (
-          <Box
-            sx={{
+          <Flex
+            vertical
+            align="center"
+            justify="center"
+            gap={8}
+            style={{
               height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'column',
-              gap: 1,
-              color: 'text.secondary',
+              color: token.colorTextSecondary,
             }}
           >
-            <Typography variant="h6" color="text.disabled">
+            <Title level={5} style={{ color: token.colorTextDisabled, margin: 0 }}>
               No Data Points Selected
-            </Typography>
-            <Typography variant="body2" color="text.disabled">
+            </Title>
+            <Text style={{ color: token.colorTextDisabled }}>
               Use the Data Points panel to search and add tags
-            </Typography>
-          </Box>
+            </Text>
+          </Flex>
         )}
 
         {!isLoading && !error && hasData && (
@@ -180,21 +160,20 @@ export const ChartPreview: React.FC = () => {
         )}
 
         {!isLoading && !error && dataPoints.length > 0 && !hasData && (
-          <Box
-            sx={{
+          <Flex
+            align="center"
+            justify="center"
+            style={{
               height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'text.secondary',
+              color: token.colorTextSecondary,
             }}
           >
-            <Typography variant="body2" color="text.disabled">
+            <Text style={{ color: token.colorTextDisabled }}>
               No readings available for selected tags and date range
-            </Typography>
-          </Box>
+            </Text>
+          </Flex>
         )}
-      </Box>
-    </Box>
+      </div>
+    </Flex>
   );
 };

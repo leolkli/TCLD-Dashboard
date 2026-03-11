@@ -1,12 +1,9 @@
 import React from 'react';
-import { Box, Typography, Stack, useTheme, CircularProgress } from '@mui/material';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
+import { Typography, Flex, Spin } from 'antd';
+import { FallOutlined, RiseOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 
-// Use recharts for tiny inline sparklines without heavy echarts overhead
-// We'll need to install it if not present, but recharts is perfect for small KPI lines
+const { Text, Title } = Typography;
 
 interface KPIWidgetProps {
   title: string;
@@ -34,8 +31,6 @@ export const KPIWidget: React.FC<KPIWidgetProps> = ({
   color,
   loading = false
 }) => {
-  const theme = useTheme();
-
   // Value formatting
   const formatValue = (val: number | string) => {
     if (typeof val === 'string') return val;
@@ -66,73 +61,78 @@ export const KPIWidget: React.FC<KPIWidgetProps> = ({
   
   // Trend styling
   const getTrendVisuals = () => {
-    if (!trend || trend.direction === 'flat') return { icon: <TrendingFlatIcon fontSize="small" />, color: theme.palette.text.secondary };
+    const defaultColor = '#8c8c8c'; // text secondary
+    if (!trend || trend.direction === 'flat') return { icon: <ArrowRightOutlined />, color: defaultColor, bgcolor: 'transparent' };
     
     const isGood = trend.isPositiveGood ?? true;
     const isUp = trend.direction === 'up';
     // If it's up and up is good -> success. If it's down and up is good -> error.
     const isSuccess = isUp ? isGood : !isGood;
     
+    const tokenSuccess = '#52c41a';
+    const tokenError = '#ff4d4f';
+
+    const visualColor = isSuccess ? tokenSuccess : tokenError;
+
     return {
-      icon: isUp ? <TrendingUpIcon fontSize="small" /> : <TrendingDownIcon fontSize="small" />,
-      color: isSuccess ? theme.palette.success.main : theme.palette.error.main,
-      bgcolor: isSuccess ? `${theme.palette.success.main}15` : `${theme.palette.error.main}15`
+      icon: isUp ? <RiseOutlined /> : <FallOutlined />,
+      color: visualColor,
+      bgcolor: isSuccess ? `${tokenSuccess}15` : `${tokenError}15`
     };
   };
 
   const trendVisuals = getTrendVisuals();
-  const primaryColor = color || theme.palette.primary.main;
+  const primaryColor = color || '#1677ff'; // primary main in antd
 
   if (loading) {
     return (
-      <Box sx={{ p: 2, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress size={24} />
-      </Box>
+      <Flex align="center" justify="center" style={{ height: '100%', padding: 16 }}>
+        <Spin size="default" />
+      </Flex>
     );
   }
 
   return (
-    <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      <Typography variant="overline" color="text.secondary" fontWeight={600} noWrap>
+    <Flex vertical justify="center" style={{ padding: 16, height: '100%' }}>
+      <Text type="secondary" strong style={{ textTransform: 'uppercase', marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {title}
-      </Typography>
+      </Text>
       
-      <Box sx={{ mt: 1, display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 1 }}>
-        <Typography variant="h3" component="div" fontWeight={700} sx={{ lineHeight: 1 }}>
+      <Flex align="baseline" wrap="wrap" gap={8}>
+        <Title level={3} style={{ margin: 0, lineHeight: 1 }}>
           {formatValue(value)}
-        </Typography>
+        </Title>
         
         {trend && (
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+          <Flex align="center" gap={4}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
                 color: trendVisuals.color,
-                bgcolor: trendVisuals.bgcolor,
-                px: 0.5,
-                py: 0.25,
-                borderRadius: 1,
-                Typography: 'body2',
+                backgroundColor: trendVisuals.bgcolor,
+                padding: '2px 4px',
+                borderRadius: 4,
+                fontSize: '12px',
                 fontWeight: 'bold'
               }}
             >
               {trendVisuals.icon}
-              <Typography variant="body2" component="span" fontWeight="bold" sx={{ ml: 0.5 }}>
+              <span style={{ marginLeft: 4 }}>
                 {trend.value.toFixed(1)}%
-              </Typography>
-            </Box>
+              </span>
+            </div>
             {trend.label && (
-              <Typography variant="caption" color="text.secondary">
+              <Text type="secondary" style={{ fontSize: '12px' }}>
                 {trend.label}
-              </Typography>
+              </Text>
             )}
-          </Stack>
+          </Flex>
         )}
-      </Box>
+      </Flex>
 
       {sparklineData && sparklineData.length > 0 && (
-        <Box sx={{ flexGrow: 1, mt: 2, minHeight: 60, width: '100%' }}>
+        <div style={{ flexGrow: 1, marginTop: 16, minHeight: 60, width: '100%' }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sparklineData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
               <defs>
@@ -152,8 +152,8 @@ export const KPIWidget: React.FC<KPIWidgetProps> = ({
               />
             </AreaChart>
           </ResponsiveContainer>
-        </Box>
+        </div>
       )}
-    </Box>
+    </Flex>
   );
 };
